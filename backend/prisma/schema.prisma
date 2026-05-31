@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Tidak boleh ada tulisan 'url' di sini sama sekali untuk Prisma 7!
+}
+
+
+// ... (Biarkan model Role, User, dll di bawahnya)
+
+// ----------------------------------------------------
+// FASE 1: SISTEM LOGIN & HAK AKSES (RBAC)
+// ----------------------------------------------------
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique 
+  users User[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id])
+  posts     Post[]   
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// FASE 2: CMS & PENGATURAN WEBSITE DINAMIS
+// ----------------------------------------------------
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique 
+  value String @db.Text
+}
+
+model Menu {
+  id         Int     @id @default(autoincrement())
+  name       String  
+  url        String  
+  parentId   Int?    
+  orderIndex Int     @default(0) 
+  isActive   Boolean @default(true)
+  
+  parent     Menu?   @relation("MenuHierarchy", fields: [parentId], references: [id])
+  children   Menu[]  @relation("MenuHierarchy")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slug      String   @unique
+  posts     Post[]   
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  content     String   @db.Text
+  thumbnail   String?  
+  image       String?  
+  published   Boolean  @default(false) 
+  views       Int      @default(0)     
+
+  authorId    String?
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

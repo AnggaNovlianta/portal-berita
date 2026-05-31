@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  /* Identitas Warna Pustaka Publik */
+  --color-navy-primary: #1A365D;
+  --color-pearl-bg: #F8FAFC;
+  --color-charcoal-text: #334155;
+  --color-gold-accent: #D4AF37;
+  
+  /* Identitas Font */
+  --font-heading: "Merriweather", serif;
+  --font-body: "Inter", sans-serif;
+}
+
+/* Mengatur warna dasar halaman */
+body {
+  background-color: var(--color-pearl-bg);
+  color: var(--color-charcoal-text);
+}
