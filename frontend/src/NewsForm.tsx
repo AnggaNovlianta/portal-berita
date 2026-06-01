@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { Upload, X, Layers } from 'lucide-react'; // Menambahkan ikon Layers
+import { Upload, X, Layers, Save, Send } from 'lucide-react'; // Menambahkan ikon Save dan Send untuk tombol Draf & Terbitkan
 
 interface Category {
   id: number | string;
@@ -30,10 +30,9 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
   const [preview, setPreview] = useState<string | null>(initialData?.thumbnail || null);
   const [file, setFile] = useState<File | null>(null);
   
-  // State baru untuk menyimpan daftar kategori dari database
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // Mengambil daftar kategori dari backend saat form dimuat
+  // Mengambil daftar kategori dari backend
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -42,7 +41,6 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
           const data = await response.json();
           setCategories(data);
           
-          // Set default kategori jika buat berita baru
           if (!initialData?.categoryId && data.length > 0) {
             setFormData(prev => ({ ...prev, categoryId: data[0].id.toString() }));
           }
@@ -62,22 +60,38 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // =========================================
+  // FUNGSI SUBMIT DENGAN STATUS DRAF/PUBLIK
+  // =========================================
+  const handleSubmitAction = (isPublished: boolean) => {
+    if (!formData.title || !formData.content || !formData.categoryId) {
+      alert('Judul, isi, dan kategori wajib diisi!');
+      return;
+    }
+
     const data = new FormData();
     data.append('title', formData.title);
     data.append('slug', formData.slug);
     data.append('content', formData.content);
     data.append('categoryId', formData.categoryId);
     
+    // MENGIRIM STATUS: true (Tayang Publik) atau false (Draf)
+    data.append('published', String(isPublished)); 
+    
     if (file) data.append('thumbnail', file);
+    
     onSubmit(data);
   };
 
+  // Mencegah submit default dari form (karena kita pakai tombol custom)
+  const preventEnterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl space-y-6">
-      <h2 className="text-xl font-black text-slate-800">
-        {initialData ? 'Mode Edit Berita' : 'Terbitkan Berita Baru'}
+    <form onSubmit={preventEnterSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl space-y-6">
+      <h2 className="text-xl font-black text-slate-800 border-b border-gray-100 pb-4">
+        {initialData ? '📝 Mode Edit Berita' : '✍️ Terbitkan Berita Baru'}
       </h2>
 
       {/* Thumbnail Upload */}
@@ -151,23 +165,42 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
       {/* Editor Konten */}
       <div>
         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Konten Berita</label>
-        <ReactQuill 
-          theme="snow" 
-          value={formData.content} 
-          onChange={(val: string) => setFormData({...formData, content: val})} 
-          className="h-48 mb-12"
-        />
+        <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white [&_.ql-toolbar]:border-none [&_.ql-toolbar]:bg-gray-50 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-slate-700">
+          <ReactQuill 
+            theme="snow" 
+            value={formData.content} 
+            onChange={(val: string) => setFormData({...formData, content: val})} 
+            placeholder="Ketik isi berita di sini..."
+          />
+        </div>
       </div>
 
-      {/* Submit Button */}
-      <button 
-        type="submit" 
-        className={`w-full py-4 text-white font-bold rounded-2xl transition-all shadow-lg ${
-          initialData ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
-        }`}
-      >
-        {initialData ? 'Simpan Pembaruan' : 'Terbitkan Sekarang'}
-      </button>
+      {/* ========================================= */}
+      {/* DUA TOMBOL AKSI: SIMPAN DRAF & TERBITKAN */}
+      {/* ========================================= */}
+      <div className="flex gap-4 pt-4 border-t border-gray-100">
+        
+        {/* Tombol Simpan Draf (false) */}
+        <button 
+          type="button" 
+          onClick={() => handleSubmitAction(false)}
+          className="flex-1 py-4 flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-2xl transition-all border border-amber-100"
+        >
+          <Save size={18} /> Simpan sbg Draf
+        </button>
+        
+        {/* Tombol Terbitkan (true) */}
+        <button 
+          type="button" 
+          onClick={() => handleSubmitAction(true)}
+          className={`flex-1 py-4 flex items-center justify-center gap-2 text-white font-black rounded-2xl transition-all shadow-lg ${
+            initialData ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
+          }`}
+        >
+          <Send size={18} /> {initialData ? 'Perbarui Publikasi' : 'Terbitkan Sekarang'}
+        </button>
+
+      </div>
     </form>
   );
 };

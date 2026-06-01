@@ -1,36 +1,22 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import prisma from '../utils/prisma'; 
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
-
-// 1. Siapkan mesin Adapter PostgreSQL
-const adapter = new PrismaPg({
-  connectionString: "postgresql://postgres:adminsupersu@localhost:5432/portal_berita?schema=public"
-});
-
-// 2. Suntikkan Adapter ke dalam Prisma
-const prisma = new PrismaClient({ adapter });
 
 // ==========================================
 // FUNGSI BANTUAN: Mesin Kompresi Gambar ke WebP
 // ==========================================
 const processAndSaveImage = async (fileBuffer: Buffer): Promise<string> => {
-  // Lokasi folder uploads (mundur 2 level: src/controllers -> src -> root)
   const uploadDir = path.join(__dirname, '../../uploads');
-  
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
   const filename = `berita-${Date.now()}.webp`;
   const outputPath = path.join(uploadDir, filename);
 
-  // Proses kompresi
   await sharp(fileBuffer)
-    .resize(800) // Ukuran lebar ideal untuk artikel berita
-    .webp({ quality: 80 }) // Kualitas 80% agar ringan dan tetap tajam
+    .resize(800) 
+    .webp({ quality: 80 }) 
     .toFile(outputPath);
 
   return `/uploads/${filename}`;
@@ -40,114 +26,132 @@ const processAndSaveImage = async (fileBuffer: Buffer): Promise<string> => {
 // FUNGSI-FUNGSI BERITA
 // ----------------------------------------------------
 
-// GET: Mengambil Semua Berita (Untuk Halaman Beranda/Home)
+// 1. GET: Mengambil Semua Berita (DENGAN PAGINASI, PENCARIAN, KATEGORI & SORTIR VIEWS)
 export const getPosts = async (req: Request, res: Response): Promise<void> => {
   try {
     const categorySlug = req.query.category as string;
-    const posts = await prisma.post.findMany({
-      where: categorySlug ? { category: { slug: categorySlug } } : {}, 
-      include: { category: true }, // Menampilkan data kategori
-      orderBy: { createdAt: 'desc' }
+    const search = req.query.search as string; 
+    const sort = req.query.sort as string; // Menangkap parameter sortir (?sort=views)
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    let whereCondition: any = {};
+
+    // Pembaca hanya boleh melihat berita yang sudah diterbitkan (bukan draf)
+    // Kecuali jika diakses dari dashboard, tapi rute ini khusus untuk publik
+    whereCondition.published = true;
+
+    if (categorySlug) whereCondition.category = { slug: categorySlug };
+    if (search) {
+      whereCondition.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // KUNCI FITUR TERPOPULER: Jika ada ?sort=views, urutkan berdasarkan views terbanyak
+    const orderByCondition: any = sort === 'views' 
+      ? { views: 'desc' } 
+      : { createdAt: 'desc' };
+
+    const [posts, totalPosts] = await Promise.all([
+      prisma.post.findMany({
+        where: whereCondition,
+        include: { category: true },
+        orderBy: orderByCondition, // Menggunakan urutan dinamis
+        skip: skip,
+        take: limit
+      }),
+      prisma.post.count({ where: whereCondition })
+    ]);
+    
+    res.json({
+      data: posts,
+      meta: {
+        total: totalPosts,
+        page: page,
+        limit: limit,
+        totalPages: Math.ceil(totalPosts / limit)
+      }
     });
-    res.json(posts);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
+    console.error("🔥 [ERROR DB GET POSTS]:", error);
+    res.status(500).json({ message: 'Terjadi kesalahan server saat mengambil berita' });
   }
 };
 
-// GET: Mengambil 1 Berita Berdasarkan URL/Slug (Untuk Halaman Baca/SEO)
+// 2. GET: Mengambil 1 Berita Berdasarkan URL/Slug
 export const getPostBySlug = async (req: Request, res: Response): Promise<void> => {
   try {
     const slug = req.params.slug as string; 
     const post = await prisma.post.findUnique({ 
-      where: { slug },
-      include: { category: true } // Menampilkan data kategori
+      where: { slug }, include: { category: true } 
     });
-    
-    if (!post) { 
-      res.status(404).json({ message: 'Berita tidak ditemukan' }); 
-      return; 
-    }
-    
+    if (!post) { res.status(404).json({ message: 'Berita tidak ditemukan' }); return; }
     res.json(post); 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Terjadi kesalahan saat mengambil detail berita' });
+    res.status(500).json({ message: 'Kesalahan mengambil detail berita' });
   }
 };
 
-// GET: Mengambil 1 Berita Berdasarkan ID (Untuk Dashboard Redaksi)
+// 3. GET: Mengambil 1 Berita Berdasarkan ID
 export const getPostById = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string; 
     const post = await prisma.post.findUnique({ 
-      where: { id },
-      include: { category: true } 
+      where: { id }, include: { category: true } 
     });
-    
-    if (!post) { 
-      res.status(404).json({ message: 'Berita tidak ditemukan' }); 
-      return; 
-    }
-    
+    if (!post) { res.status(404).json({ message: 'Berita tidak ditemukan' }); return; }
     res.json(post); 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Terjadi kesalahan saat mengambil detail berita' });
+    res.status(500).json({ message: 'Kesalahan mengambil detail berita' });
   }
 };
 
-// POST: Menerbitkan Berita Baru
+// 4. POST: Menerbitkan / Menyimpan Berita Baru
 export const createPost = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { title, slug, content, categoryId } = req.body;
-    
-    // Gunakan sharp jika ada file yang diunggah
+    // Menangkap status 'published' dari Frontend
+    const { title, slug, content, categoryId, published } = req.body;
     let thumbnail = null;
-    if (req.file) {
-      thumbnail = await processAndSaveImage(req.file.buffer);
-    }
+    
+    if (req.file) thumbnail = await processAndSaveImage(req.file.buffer);
 
     const newPost = await prisma.post.create({
       data: { 
         title, 
         slug, 
         content, 
-        categoryId: categoryId ? parseInt(categoryId) : 1, 
         thumbnail, 
-        published: true 
+        published: published === 'true', // Mengubah string form menjadi boolean
+        categoryId: categoryId ? parseInt(categoryId) : 1
       }
     });
     res.status(201).json(newPost);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Terjadi kesalahan saat menyimpan berita' });
+    res.status(500).json({ message: 'Kesalahan saat menyimpan berita' });
   }
 };
 
-// PUT: Memperbarui Berita
+// 5. PUT: Memperbarui Berita
 export const updatePost = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string; 
-    const { title, slug, content, categoryId } = req.body;
+    const { title, slug, content, categoryId, published } = req.body;
     
     const updateData: any = { 
       title, 
       slug, 
       content, 
+      published: published === 'true', // Mengubah string form menjadi boolean
       categoryId: categoryId ? parseInt(categoryId) : 1 
     };
 
-    // Jika redaktur mengunggah gambar BARU
     if (req.file) {
-      // 1. Cari data gambar lama di database
       const existingPost = await prisma.post.findUnique({ where: { id } });
-      
-      // 2. Buat gambar WebP yang baru
       updateData.thumbnail = await processAndSaveImage(req.file.buffer);
-      
-      // 3. Hapus gambar lama dari folder server agar harddisk tetap lega
       if (existingPost?.thumbnail) {
         const oldImagePath = path.join(__dirname, '../..', existingPost.thumbnail);
         if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
@@ -157,27 +161,39 @@ export const updatePost = async (req: Request, res: Response): Promise<void> => 
     const updatedPost = await prisma.post.update({ where: { id }, data: updateData });
     res.json(updatedPost);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Terjadi kesalahan saat memperbarui berita' });
+    res.status(500).json({ message: 'Kesalahan memperbarui berita' });
   }
 };
 
-// DELETE: Menghapus Berita
+// 6. DELETE: Menghapus Berita
 export const deletePost = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string; 
-    
-    // Hapus file gambar dari server sebelum menghapus data di database
     const existingPost = await prisma.post.findUnique({ where: { id } });
+    
     if (existingPost?.thumbnail) {
       const imagePath = path.join(__dirname, '../..', existingPost.thumbnail);
       if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     }
 
     await prisma.post.delete({ where: { id } });
-    res.json({ message: 'Berita berhasil dihapus' });
+    res.json({ message: 'Berita dihapus' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Terjadi kesalahan saat menghapus berita' });
+    res.status(500).json({ message: 'Kesalahan menghapus berita' });
+  }
+};
+
+// 7. PATCH: Menambah Jumlah Views (Setiap kali pembaca membuka berita)
+export const incrementViews = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const slug = req.params.slug as string;
+    await prisma.post.update({
+      where: { slug },
+      data: { views: { increment: 1 } }
+    });
+    res.json({ message: 'View ditambahkan' });
+  } catch (error) {
+    console.error("Gagal menambah view", error);
+    res.status(500).json({ message: 'Gagal menambah view' });
   }
 };
