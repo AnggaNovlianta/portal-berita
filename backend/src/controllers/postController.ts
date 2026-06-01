@@ -59,7 +59,7 @@ export const getPosts = async (req: Request, res: Response): Promise<void> => {
     const [posts, totalPosts] = await Promise.all([
       prisma.post.findMany({
         where: whereCondition,
-        include: { category: true },
+        include: { category: true, author: { select: { name: true } } },
         orderBy: orderByCondition, // Menggunakan urutan dinamis
         skip: skip,
         take: limit
@@ -87,7 +87,7 @@ export const getPostBySlug = async (req: Request, res: Response): Promise<void> 
   try {
     const slug = req.params.slug as string; 
     const post = await prisma.post.findUnique({ 
-      where: { slug }, include: { category: true } 
+      where: { slug }, include: { category: true, author: { select: { name: true } } } 
     });
     if (!post) { res.status(404).json({ message: 'Berita tidak ditemukan' }); return; }
     res.json(post); 
@@ -101,7 +101,7 @@ export const getPostById = async (req: Request, res: Response): Promise<void> =>
   try {
     const id = req.params.id as string; 
     const post = await prisma.post.findUnique({ 
-      where: { id }, include: { category: true } 
+      where: { id }, include: { category: true, author: { select: { name: true } } } 
     });
     if (!post) { res.status(404).json({ message: 'Berita tidak ditemukan' }); return; }
     res.json(post); 
@@ -113,11 +113,17 @@ export const getPostById = async (req: Request, res: Response): Promise<void> =>
 // 4. POST: Menerbitkan / Menyimpan Berita Baru
 export const createPost = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Menangkap status 'published' dari Frontend
+    const userId = (req as any).user?.userId;
+    const roleName = (req as any).user?.roleName;
+
     const { title, slug, content, categoryId, published } = req.body;
     let thumbnail = null;
     
     if (req.file) thumbnail = await processAndSaveImage(req.file.buffer);
+
+    let isPublished = published === 'true';
+    // RBAC: Jurnalis hanya bisa Draf, Redaktur/Admin bebas
+    if (roleName === 'Jurnalis') isPublished = false; 
 
     const newPost = await prisma.post.create({
       data: { 
@@ -125,8 +131,9 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
         slug, 
         content, 
         thumbnail, 
-        published: published === 'true', // Mengubah string form menjadi boolean
-        categoryId: categoryId ? parseInt(categoryId) : 1
+        published: isPublished,
+        categoryId: categoryId ? parseInt(categoryId) : 1,
+        authorId: userId // Mengambil ID otomatis dari Token Login (Sangat Aman)
       }
     });
     res.status(201).json(newPost);
@@ -139,18 +146,32 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
 export const updatePost = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string; 
+    const userId = (req as any).user?.userId;
+    const roleName = (req as any).user?.roleName;
+
     const { title, slug, content, categoryId, published } = req.body;
     
+    const existingPost = await prisma.post.findUnique({ where: { id } });
+    if (!existingPost) { res.status(404).json({ message: 'Berita tidak ditemukan' }); return; }
+
+    let isPublished = published === 'true';
+
+    // RBAC: Jurnalis hanya boleh mengedit draf miliknya yang belum terbit
+    if (roleName === 'Jurnalis') {
+      if (existingPost.authorId !== userId) { res.status(403).json({ message: 'Ditolak: Anda hanya dapat mengedit berita Anda sendiri.' }); return; }
+      if (existingPost.published) { res.status(403).json({ message: 'Ditolak: Berita yang sudah terbit tidak dapat diedit oleh Jurnalis.' }); return; }
+      isPublished = false; // Memastikan status tetap Draf
+    }
+
     const updateData: any = { 
       title, 
       slug, 
       content, 
-      published: published === 'true', // Mengubah string form menjadi boolean
+      published: isPublished,
       categoryId: categoryId ? parseInt(categoryId) : 1 
     };
 
     if (req.file) {
-      const existingPost = await prisma.post.findUnique({ where: { id } });
       updateData.thumbnail = await processAndSaveImage(req.file.buffer);
       if (existingPost?.thumbnail) {
         const oldImagePath = path.join(__dirname, '../..', existingPost.thumbnail);
@@ -169,7 +190,17 @@ export const updatePost = async (req: Request, res: Response): Promise<void> => 
 export const deletePost = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string; 
+    const userId = (req as any).user?.userId;
+    const roleName = (req as any).user?.roleName;
+
     const existingPost = await prisma.post.findUnique({ where: { id } });
+    if (!existingPost) { res.status(404).json({ message: 'Berita tidak ditemukan' }); return; }
+
+    // RBAC: Jurnalis hanya boleh menghapus draf miliknya
+    if (roleName === 'Jurnalis') {
+      if (existingPost.authorId !== userId) { res.status(403).json({ message: 'Ditolak: Anda hanya dapat menghapus berita Anda sendiri.' }); return; }
+      if (existingPost.published) { res.status(403).json({ message: 'Ditolak: Berita yang sudah terbit tidak dapat dihapus oleh Jurnalis.' }); return; }
+    }
     
     if (existingPost?.thumbnail) {
       const imagePath = path.join(__dirname, '../..', existingPost.thumbnail);

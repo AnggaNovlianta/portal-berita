@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import prisma from '../utils/prisma';
 
 // Mengembangkan tipe data Request Express agar bisa menyimpan data 'user'
 export interface AuthRequest extends Request {
@@ -27,5 +28,27 @@ export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction)
   } catch (error) {
     // Jika token palsu, diubah hacker, atau sudah expired
     res.status(403).json({ message: 'Token tidak valid atau sudah kedaluwarsa!' });
+  }
+};
+
+export const isAdmin = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user || !req.user.userId) {
+      res.status(401).json({ message: 'Akses ditolak! User tidak teridentifikasi.' });
+      return;
+    }
+    
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      include: { role: true }
+    });
+    
+    if (user?.role?.name !== 'Admin') {
+      res.status(403).json({ message: 'Akses ditolak! Hanya Administrator yang diizinkan.' });
+      return;
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Terjadi kesalahan sistem saat memverifikasi hak akses.' });
   }
 };

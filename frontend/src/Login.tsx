@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Wajib diimpor untuk pindah halaman
+import { useNavigate, Link } from 'react-router-dom'; // 1. Wajib diimpor untuk pindah halaman
+import api, { getErrorMessage } from './api';
 
 // 2. Ubah interface agar bisa menerima token
 interface LoginProps {
@@ -20,28 +21,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5050/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Email atau password salah!');
-      }
+      const response = await api.post('/auth/login', { email, password });
+      const data = response.data;
 
       // 3. Kirim token ke App.tsx, lalu paksa pindah ke Dashboard
       onLoginSuccess(data.token); 
       navigate('/dashboard');
       
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Terjadi kesalahan pada sistem.');
-      }
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +85,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             {isLoading ? 'Memverifikasi...' : 'Masuk ke Sistem'}
           </button>
         </form>
+        <div className="mt-6 text-center text-sm text-gray-500 font-medium">
+          Belum punya akun? <Link to="/register" className="text-blue-600 hover:underline font-bold">Daftar sekarang</Link>
+        </div>
       </div>
     </div>
   );

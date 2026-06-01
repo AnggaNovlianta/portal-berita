@@ -24,6 +24,7 @@ model User {
   email     String   @unique
   password  String
   name      String
+  isApproved Boolean @default(false)
   roleId    Int
   role      Role     @relation(fields: [roleId], references: [id])
   posts     Post[]

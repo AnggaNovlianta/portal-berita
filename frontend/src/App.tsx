@@ -4,6 +4,7 @@ import Dashboard from './Dashboard';
 import PostDetail from './PostDetail';
 import Home from './Home';
 import Login from './Login';
+import Register from './Register';
 
 const App: React.FC = () => {
   // KUNCI PERBAIKAN: Membaca localStorage langsung ke dalam useState (Lazy Initialization)
@@ -35,6 +36,12 @@ const App: React.FC = () => {
         <Route 
           path="/login" 
           element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLoginSuccess={handleLoginSuccess} />} 
+        />
+        
+        {/* RUTE REGISTER */}
+        <Route 
+          path="/register" 
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} 
         />
 
         {/* RUTE REDAKSI (Proteksi Penuh) */}

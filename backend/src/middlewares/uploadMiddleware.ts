@@ -19,6 +19,6 @@ export const upload = multer({
   storage, 
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // Batasi ukuran maksimal 5MB agar RAM server tetap aman
+    fileSize: 2 * 1024 * 1024 // Batasi ukuran maksimal 2MB
   }
 });

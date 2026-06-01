@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, X, Loader2, TrendingUp } from 'lucide-react'; // Tambah ikon Trending
+import { Search, X, Loader2, TrendingUp, User } from 'lucide-react'; // Tambah ikon Trending & User
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import api, { BASE_URL } from './api';
 
 interface Category {
   id: string | number;
@@ -21,19 +23,14 @@ interface Post {
     name: string;
     slug: string;
   };
+  author?: { name: string; };
+}
+
+interface SiteSettings {
+  [key: string]: string;
 }
 
 const Home: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [popularPosts, setPopularPosts] = useState<Post[]>([]); // STATE BARU: Untuk Berita Terpopuler
-  
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false); 
-  
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -41,83 +38,62 @@ const Home: React.FC = () => {
   const currentSearchQuery = searchParams.get('q') || ''; 
   const [searchInput, setSearchInput] = useState(currentSearchQuery);
 
-  const [prevUrlTracker, setPrevUrlTracker] = useState({ category: currentCategorySlug, search: currentSearchQuery });
+  // QUERY 1: Menarik Berita Utama & Berita Terkini dengan Infinite Scroll
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading
+  } = useInfiniteQuery({
+    queryKey: ['posts', currentCategorySlug, currentSearchQuery],
+    queryFn: async ({ pageParam = 1 }) => {
+      const queryParams = new URLSearchParams();
+      if (currentCategorySlug) queryParams.append('category', currentCategorySlug);
+      if (currentSearchQuery) queryParams.append('search', currentSearchQuery);
+      
+      queryParams.append('page', pageParam.toString());
+      queryParams.append('limit', '10'); 
 
-  if (prevUrlTracker.category !== currentCategorySlug || prevUrlTracker.search !== currentSearchQuery) {
-    setPage(1);
-    setPosts([]);
-    setPrevUrlTracker({ category: currentCategorySlug, search: currentSearchQuery });
-  }
-
-  // EFFECT 1: Menarik Berita Utama & Berita Terkini
-  useEffect(() => {
-    const fetchPosts = async () => {
-      if (page === 1) setLoading(true);
-      else setLoadingMore(true);
-
-      try {
-        const queryParams = new URLSearchParams();
-        if (currentCategorySlug) queryParams.append('category', currentCategorySlug);
-        if (currentSearchQuery) queryParams.append('search', currentSearchQuery);
-        
-        queryParams.append('page', page.toString());
-        queryParams.append('limit', '10'); 
-
-        const url = `http://localhost:5050/api/posts?${queryParams.toString()}`;
-        const response = await fetch(url);
-        const result = await response.json();
-        
-        const fetchedPosts = result.data ? result.data : result;
-
-        if (page === 1) {
-          setPosts(fetchedPosts); 
-        } else {
-          setPosts(prev => [...prev, ...fetchedPosts]); 
-        }
-
-        if (result.meta) setTotalPages(result.meta.totalPages);
-
-      } catch (error) {
-        console.error('Gagal mengambil berita:', error);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
+      const response = await api.get(`/posts?${queryParams.toString()}`);
+      return response.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.meta && lastPage.meta.page < lastPage.meta.totalPages) {
+        return lastPage.meta.page + 1;
       }
-    };
-    fetchPosts();
-  }, [currentCategorySlug, currentSearchQuery, page]);
+      return undefined;
+    }
+  });
 
-  // EFFECT 2: Menarik 5 Berita Terpopuler Globally (Berdasarkan Views)
-  useEffect(() => {
-    const fetchPopularPosts = async () => {
-      try {
-        // Meminta 5 berita terpopuler saja ke backend
-        const response = await fetch('http://localhost:5050/api/posts?limit=5&sort=views');
-        const result = await response.json();
-        const fetchedPopular = result.data ? result.data : result;
-        setPopularPosts(fetchedPopular || []);
-      } catch (error) {
-        console.error('Gagal memuat berita populer:', error);
-      }
-    };
-    fetchPopularPosts();
-  }, []);
+  // QUERY 2: Menarik 5 Berita Terpopuler Globally
+  const { data: popularPosts = [] } = useQuery<Post[]>({
+    queryKey: ['popularPosts'],
+    queryFn: async () => {
+      const response = await api.get('/posts?limit=5&sort=views');
+      const result = response.data;
+      return result.data ? result.data : result;
+    }
+  });
 
-  // EFFECT 3: Menarik Daftar Kategori
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('http://localhost:5050/api/categories');
-        if (response.ok) {
-          const data = await response.json();
-          setCategories(data);
-        }
-      } catch (error) {
-        console.error('Gagal memuat kategori:', error);
-      }
-    };
-    fetchCategories();
-  }, []);
+  // QUERY 3: Menarik Daftar Kategori
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await api.get('/categories');
+      return response.data;
+    }
+  });
+
+  // QUERY 4: Mengambil Pengaturan Website (Nama & Logo)
+  const { data: settings } = useQuery<SiteSettings>({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const response = await api.get('/settings');
+      return response.data;
+    }
+  });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,9 +113,21 @@ const Home: React.FC = () => {
     return htmlString.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
   };
 
+    // Menggabungkan semua halaman data posts yang telah di-fetch
+  const posts = data?.pages.flatMap(page => page.data ? page.data : page) || [];
   const headline = posts.length > 0 ? posts[0] : null;
   const otherPosts = posts.length > 1 ? posts.slice(1) : [];
   const currentDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Logika untuk memecah nama website menjadi dua bagian untuk pewarnaan
+  const siteName = settings?.site_name || 'PUSTAKA PUBLIK';
+  const nameParts = siteName.split(' ');
+  const lastWord = nameParts.pop() || '';
+  const firstPart = nameParts.join(' ');
+
+  const siteLogo = settings?.site_logo 
+    ? `${BASE_URL}${settings.site_logo}` 
+    : null;
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-800">
@@ -154,8 +142,11 @@ const Home: React.FC = () => {
         </div>
 
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <Link to="/" onClick={clearSearch} className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 w-full md:w-auto text-center md:text-left">
-            PUSTAKA<span className="text-blue-600">PUBLIK</span>
+          <Link to="/" onClick={clearSearch} className="flex items-center justify-center md:justify-start gap-4 text-4xl md:text-5xl font-black tracking-tighter text-slate-900 w-full md:w-auto text-center md:text-left">
+            {siteLogo && (
+              <img src={siteLogo} alt={siteName} className="h-12 md:h-14 object-contain" />
+            )}
+            <span>{firstPart} <span className="text-blue-600">{lastWord}</span></span>
           </Link>
           
           <form onSubmit={handleSearchSubmit} className="w-full md:max-w-md relative group">
@@ -209,28 +200,64 @@ const Home: React.FC = () => {
           </div>
         )}
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64 text-slate-400 font-bold animate-pulse">
-            Menyusun Berita Terbaru...
+        {isLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 animate-pulse">
+            <div className="lg:col-span-2">
+              {/* Skeleton Berita Utama */}
+
+              <div>
+                <div className="w-48 h-6 bg-slate-200 rounded mb-6"></div>
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex flex-col sm:flex-row gap-5 py-6 border-b border-gray-100">
+                    <div className="w-full sm:w-[200px] aspect-video sm:aspect-square md:aspect-[4/3] bg-slate-200 rounded-lg"></div>
+                    <div className="flex flex-col flex-1 py-2">
+                      <div className="w-20 h-3 bg-slate-200 rounded mb-2"></div>
+                      <div className="w-full h-6 bg-slate-200 rounded mb-2"></div>
+                      <div className="w-3/4 h-6 bg-slate-200 rounded mb-4"></div>
+                      <div className="w-full h-3 bg-slate-200 rounded mb-2"></div>
+                      <div className="w-1/2 h-3 bg-slate-200 rounded mt-auto"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Skeleton Tangga Berita Populer (Sidebar) */}
+            <aside className="lg:col-span-1 hidden lg:block">
+              <div className="w-48 h-6 bg-slate-200 rounded mb-6"></div>
+              <div className="flex flex-col gap-6">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="flex gap-4 items-start">
+                    <div className="w-10 h-10 bg-slate-200 rounded"></div>
+                    <div className="flex-1">
+                      <div className="w-24 h-3 bg-slate-200 rounded mb-2"></div>
+                      <div className="w-full h-4 bg-slate-200 rounded mb-1"></div>
+                      <div className="w-3/4 h-4 bg-slate-200 rounded"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </aside>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
             
-            {/* KOLOM KIRI (70%) */}
+                        {/* KOLOM KIRI (70%) */}
             <div className="lg:col-span-2">
               
-              {headline && page === 1 && (
+              {headline && (
                 <article className="mb-10 pb-10 border-b-2 border-gray-100 group">
                   <Link to={`/berita/${headline.slug}`} className="block">
                     <div className="w-full aspect-[16/9] bg-slate-100 rounded-xl overflow-hidden mb-5 relative">
+
                       {headline.thumbnail ? (
-                        <img src={`http://localhost:5050${headline.thumbnail}`} alt={headline.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <img src={`${BASE_URL}${headline.thumbnail}`} alt={headline.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400">Tanpa Gambar</div>
                       )}
                     </div>
                     <div className="flex items-center gap-3 mb-3">
                       <span className="text-xs font-black text-blue-600 uppercase tracking-widest">{headline.category?.name || 'Berita Utama'}</span>
+                      <span className="text-xs text-gray-400 font-medium flex items-center gap-1 border-l border-gray-300 pl-3"><User size={12} /> {headline.author?.name || 'Redaksi'}</span>
                       <span className="text-xs text-gray-400 font-medium">{new Date(headline.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                     </div>
                     <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-3 group-hover:text-blue-600 transition-colors">{headline.title}</h1>
@@ -249,7 +276,7 @@ const Home: React.FC = () => {
                       <Link to={`/berita/${post.slug}`} key={post.id} className="group flex flex-col sm:flex-row gap-5 py-6 border-b border-gray-100 hover:bg-slate-50 transition-colors px-2 -mx-2 rounded-lg">
                         <div className="w-full sm:w-[200px] aspect-video sm:aspect-square md:aspect-[4/3] flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden relative">
                           {post.thumbnail ? (
-                            <img src={`http://localhost:5050${post.thumbnail}`} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">No Image</div>
                           )}
@@ -258,20 +285,20 @@ const Home: React.FC = () => {
                           <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-2">{post.category?.name || 'Kabar'}</span>
                           <h3 className="text-lg md:text-xl font-black text-slate-900 leading-snug mb-2 group-hover:text-blue-600 transition-colors">{post.title}</h3>
                           <p className="text-sm text-slate-500 line-clamp-2 mb-2">{stripHtml(post.content)}</p>
-                          <span className="text-[11px] text-gray-400 font-medium mt-auto">{new Date(post.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                          <span className="text-[11px] text-gray-400 font-medium mt-auto flex items-center gap-2">{new Date(post.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} <span className="w-1 h-1 bg-gray-300 rounded-full"></span> {post.author?.name || 'Redaksi'}</span>
                         </div>
                       </Link>
                     ))}
                   </div>
 
-                  {page < totalPages && (
+                  {hasNextPage && (
                     <div className="mt-10 mb-8 flex justify-center">
                       <button 
-                        onClick={() => setPage(prev => prev + 1)}
-                        disabled={loadingMore}
+                        onClick={() => fetchNextPage()}
+                        disabled={isFetchingNextPage}
                         className="flex items-center gap-3 bg-slate-900 hover:bg-blue-600 text-white font-bold px-8 py-3.5 rounded-full transition-all shadow-lg hover:shadow-blue-500/30 disabled:opacity-70 disabled:cursor-not-allowed group"
                       >
-                        {loadingMore ? (
+                        {isFetchingNextPage ? (
                           <><Loader2 className="animate-spin text-blue-400" size={20} /> Memanggil Data...</>
                         ) : (
                           <>Muat Lebih Banyak Berita <span className="group-hover:translate-y-1 transition-transform">&darr;</span></>

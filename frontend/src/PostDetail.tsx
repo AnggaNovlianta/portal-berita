@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom'; 
 import { Helmet } from 'react-helmet-async';
-import { Eye, ArrowLeft, Calendar } from 'lucide-react';
+import { Eye, ArrowLeft, Calendar, Clock, User } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import api, { BASE_URL } from './api';
 
 interface Post {
   id: string;
@@ -12,40 +14,97 @@ interface Post {
   createdAt: string;
   views: number;
   category?: { name: string; slug: string; };
+  author?: { name: string; };
 }
 
 const PostDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [post, setPost] = useState<Post | null>(null);
-  const [loading, setLoading] = useState(true);
 
+  // EFEK SAMPING: Menambah tayangan (views) dan menggulung layar ke atas setiap kali URL berubah
   useEffect(() => {
-    const fetchPostAndIncrementView = async () => {
-      try {
-        const response = await fetch(`http://localhost:5050/api/posts/slug/${slug}`);
-        if (!response.ok) throw new Error('Berita tidak ditemukan');
-        const data = await response.json();
-        setPost(data);
-
-        await fetch(`http://localhost:5050/api/posts/${slug}/views`, { method: 'PATCH' });
-      } catch (error) {
-        console.error('Gagal memuat berita:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (slug) fetchPostAndIncrementView();
+    if (slug) {
+      window.scrollTo(0, 0);
+      // Hanya ping ke server, tidak perlu menunggu proses selesai (fire-and-forget)
+      api.patch(`/posts/${slug}/views`).catch(console.error);
+    }
   }, [slug]);
 
-  if (loading) return <div className="flex h-screen items-center justify-center font-bold text-slate-400">Memuat artikel...</div>;
+  // QUERY 1: Menarik Detail Berita berdasarkan Slug
+  const { data: post, isLoading } = useQuery<Post>({
+    queryKey: ['post', slug],
+    queryFn: async () => {
+      const response = await api.get(`/posts/slug/${slug}`);
+      return response.data;
+    },
+    enabled: !!slug
+  });
+
+  // QUERY 2: Menarik Berita Terkait (Dependent Query)
+  // Query ini HANYA akan berjalan JIKA data post dan kategorinya sudah tersedia dari Query 1
+  const categorySlug = post?.category?.slug;
+  const { data: relatedPosts = [] } = useQuery<Post[]>({
+    queryKey: ['relatedPosts', categorySlug, post?.id],
+    queryFn: async () => {
+      const response = await api.get(`/posts?category=${categorySlug}&limit=4`);
+      const result = response.data;
+      const actualRelated = result.data ? result.data : result;
+      // Filter agar berita yang sedang dibaca tidak muncul di list "Berita Terkait"
+      return actualRelated.filter((p: Post) => p.id !== post?.id).slice(0, 3);
+    },
+    enabled: !!categorySlug && !!post?.id
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD] text-slate-900 animate-pulse">
+        <nav className="max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
+          <div className="w-24 h-6 bg-slate-200 rounded-md"></div>
+          <div className="w-32 h-6 bg-slate-200 rounded-md"></div>
+        </nav>
+        <main className="max-w-3xl mx-auto px-6 pb-20">
+          {/* Badge & Title Skeleton */}
+          <div className="mb-6 w-24 h-6 bg-slate-200 rounded-full"></div>
+          <div className="w-full h-12 bg-slate-200 rounded-lg mb-4"></div>
+          <div className="w-3/4 h-12 bg-slate-200 rounded-lg mb-8"></div>
+          
+          {/* Meta Info Skeleton */}
+          <div className="flex gap-6 mb-10 border-b border-slate-100 pb-8">
+            <div className="w-24 h-5 bg-slate-200 rounded-md"></div>
+            <div className="w-24 h-5 bg-slate-200 rounded-md"></div>
+            <div className="w-24 h-5 bg-slate-200 rounded-md"></div>
+          </div>
+          
+          {/* Thumbnail & Content Skeleton */}
+          <div className="w-full aspect-[21/9] bg-slate-200 rounded-2xl mb-10"></div>
+          <div className="space-y-4">
+            <div className="w-full h-4 bg-slate-200 rounded-md"></div>
+            <div className="w-full h-4 bg-slate-200 rounded-md"></div>
+            <div className="w-5/6 h-4 bg-slate-200 rounded-md"></div>
+            <div className="w-full h-4 bg-slate-200 rounded-md mt-6"></div>
+            <div className="w-4/5 h-4 bg-slate-200 rounded-md"></div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!post) return <div className="text-center py-20 font-bold text-slate-600">Artikel tidak ditemukan.</div>;
 
-  const imageUrl = post.thumbnail ? `http://localhost:5050${post.thumbnail}` : '';
+  const imageUrl = post.thumbnail ? `${BASE_URL}${post.thumbnail}` : '';
+
+  // Hitung estimasi waktu baca (Asumsi kecepatan baca rata-rata 200 kata per menit)
+  const wordCount = post.content.replace(/<[^>]+>/g, '').split(/\s+/).length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900">
       <Helmet>
         <title>{post.title} | Pustaka Publik</title>
+        <meta name="description" content={post.content.replace(/<[^>]+>/g, '').substring(0, 160)} />
+        <meta property="og:title" content={post.title} />
+        <meta property="og:description" content={post.content.replace(/<[^>]+>/g, '').substring(0, 160)} />
+        {imageUrl && <meta property="og:image" content={imageUrl} />}
+        <meta property="og:type" content="article" />
       </Helmet>
 
       {/* Navigasi */}
@@ -71,8 +130,14 @@ const PostDetail: React.FC = () => {
           </h1>
 
           <div className="flex items-center gap-6 text-slate-400 text-sm mb-10 border-b border-slate-100 pb-8">
+             <div className="flex items-center gap-2 font-medium text-slate-600">
+                <User size={18} /> Oleh: <span className="font-bold">{post.author?.name || 'Tim Redaksi'}</span>
+             </div>
              <div className="flex items-center gap-2 font-medium">
                 <Calendar size={18} /> {new Date(post.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+             </div>
+             <div className="flex items-center gap-2 font-medium">
+                <Clock size={18} /> {readingTime} Menit Baca
              </div>
              <div className="flex items-center gap-2 font-bold text-blue-600">
                 <Eye size={18} /> {post.views} Tayangan
@@ -93,6 +158,27 @@ const PostDetail: React.FC = () => {
                        break-words overflow-hidden"
             dangerouslySetInnerHTML={{ __html: post.content }} 
           />
+
+          {/* Bagian Berita Terkait */}
+          {relatedPosts.length > 0 && (
+            <div className="mt-16 pt-10 border-t border-slate-100">
+              <h3 className="text-2xl font-black mb-6">Mungkin Anda Suka</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {relatedPosts.map(rp => (
+                  <Link to={`/berita/${rp.slug}`} key={rp.id} className="group block">
+                    <div className="w-full aspect-video rounded-xl overflow-hidden bg-slate-100 mb-3 relative">
+                      {rp.thumbnail ? (
+                        <img src={`${BASE_URL}${rp.thumbnail}`} alt={rp.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">Tanpa Gambar</div>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-slate-800 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">{rp.title}</h4>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </article>
       </main>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { Upload, X, Layers, Save, Send } from 'lucide-react'; // Menambahkan ikon Save dan Send untuk tombol Draf & Terbitkan
+import api from './api';
 
 interface Category {
   id: number | string;
@@ -16,10 +17,11 @@ interface NewsFormProps {
     categoryId: string | number;
     thumbnail?: string;
   };
+  userRole: string;
   onSubmit: (formData: FormData) => void;
 }
 
-const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
+const NewsForm: React.FC<NewsFormProps> = ({ initialData, userRole, onSubmit }) => {
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     slug: initialData?.slug || '',
@@ -36,14 +38,12 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://localhost:5050/api/categories');
-        if (response.ok) {
-          const data = await response.json();
-          setCategories(data);
-          
-          if (!initialData?.categoryId && data.length > 0) {
-            setFormData(prev => ({ ...prev, categoryId: data[0].id.toString() }));
-          }
+        const response = await api.get('/categories');
+        const data = response.data;
+        setCategories(data);
+        
+        if (!initialData?.categoryId && data.length > 0) {
+          setFormData(prev => ({ ...prev, categoryId: data[0].id.toString() }));
         }
       } catch (error) {
         console.error('Gagal memuat kategori:', error);
@@ -55,6 +55,14 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0];
+      
+      // Validasi ukuran maksimal 2MB (2 * 1024 * 1024 bytes)
+      if (selected.size > 2 * 1024 * 1024) {
+        alert('Ukuran gambar terlalu besar! Maksimal 2MB.');
+        e.target.value = ''; // Reset input file
+        return;
+      }
+
       setFile(selected);
       setPreview(URL.createObjectURL(selected));
     }
@@ -190,15 +198,17 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, onSubmit }) => {
         </button>
         
         {/* Tombol Terbitkan (true) */}
-        <button 
-          type="button" 
-          onClick={() => handleSubmitAction(true)}
-          className={`flex-1 py-4 flex items-center justify-center gap-2 text-white font-black rounded-2xl transition-all shadow-lg ${
-            initialData ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
-          }`}
-        >
-          <Send size={18} /> {initialData ? 'Perbarui Publikasi' : 'Terbitkan Sekarang'}
-        </button>
+        {userRole !== 'Jurnalis' && (
+          <button 
+            type="button" 
+            onClick={() => handleSubmitAction(true)}
+            className={`flex-1 py-4 flex items-center justify-center gap-2 text-white font-black rounded-2xl transition-all shadow-lg ${
+              initialData ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
+            }`}
+          >
+            <Send size={18} /> {initialData ? 'Perbarui Publikasi' : 'Terbitkan Sekarang'}
+          </button>
+        )}
 
       </div>
     </form>

@@ -6,7 +6,13 @@ import prisma from '../utils/prisma';
 // 1. FUNGSI REGISTRASI (Mendaftar Akun)
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, name, roleId } = req.body;
+    const { email, password, name, roleName = 'Jurnalis' } = req.body;
+
+    // Keamanan: Tolak jika ada yang mencoba mendaftar sebagai Admin dari luar
+    if (roleName === 'Admin') {
+      res.status(403).json({ message: 'Tidak diizinkan mendaftar sebagai Admin!' });
+      return;
+    }
 
     // Cek apakah email sudah terdaftar sebelumnya
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -14,6 +20,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ message: 'Email sudah terdaftar!' });
       return;
     }
+
+    // Pastikan Role ada di database
+    const role = await prisma.role.upsert({
+      where: { name: roleName },
+      update: {},
+      create: { name: roleName },
+    });
 
     // Acak (hash) password agar tidak bisa dibaca di database
     const saltRounds = 10;
@@ -25,7 +38,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         email,
         password: hashedPassword,
         name,
-        roleId
+        roleId: role.id,
+        isApproved: false // Pendaftar mandiri butuh persetujuan
       }
     });
 
@@ -41,7 +55,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
 
     // Cari user di database
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email }, include: { role: true } });
     if (!user) {
       res.status(401).json({ message: 'Email atau password salah!' });
       return;
@@ -54,9 +68,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Cek apakah akun sudah disetujui oleh Admin (Akun Administrator dikecualikan dan bebas masuk)
+    if (!user.isApproved && user.role?.name !== 'Admin') {
+      res.status(403).json({ message: 'Akun Anda belum disetujui oleh Admin. Silakan tunggu.' });
+      return;
+    }
+
     // Jika cocok, buatkan Token JWT (Kartu Akses Digital)
     const token = jwt.sign(
-      { userId: user.id, roleId: user.roleId }, 
+      { userId: user.id, roleId: user.roleId, roleName: user.role.name }, 
       process.env.JWT_SECRET as string, 
       { expiresIn: '1d' } // Token berlaku 1 hari
     );
