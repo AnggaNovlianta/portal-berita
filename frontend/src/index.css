@@ -17,3 +17,52 @@ body {
   background-color: var(--color-pearl-bg);
   color: var(--color-charcoal-text);
 }
+
+/* ========================================= */
+/* OVERRIDE MODE GELAP (DARK MODE) GLOBAL    */
+/* ========================================= */
+html.dark body {
+  background-color: #0f172a; /* slate-900 */
+  color: #f8fafc; /* slate-50 */
+}
+
+html.dark .bg-white,
+html.dark .bg-\[\#FDFDFD\] {
+  background-color: #1e293b !important; /* slate-800 */
+  border-color: #334155 !important; /* slate-700 */
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #f8fafc !important; /* slate-50 */
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+  background-color: #0f172a !important; /* slate-900 */
+}
+
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-slate-100 {
+  border-color: #334155 !important; /* slate-700 */
+}
+
+/* Animasi Running Text (Ticker) */
+@keyframes ticker {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-ticker {
+  animation: ticker 35s linear infinite;
+}
+.animate-ticker:hover {
+  animation-play-state: paused;
+}

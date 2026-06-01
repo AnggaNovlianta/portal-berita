@@ -195,3 +195,26 @@ export const resetPassword = async (req: Request<{ id: string }>, res: Response)
     res.status(500).json({ message: 'Gagal mengatur ulang kata sandi pengguna' });
   }
 };
+
+export const updateUserRole = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { roleName } = req.body;
+
+    if (!roleName) {
+      res.status(400).json({ message: 'Role baru wajib diisi.' });
+      return;
+    }
+
+    const role = await prisma.role.upsert({
+      where: { name: roleName },
+      update: {},
+      create: { name: roleName },
+    });
+
+    await prisma.user.update({ where: { id }, data: { roleId: role.id } });
+    res.json({ message: 'Peran pengguna berhasil diperbarui.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal memperbarui peran pengguna.' });
+  }
+};

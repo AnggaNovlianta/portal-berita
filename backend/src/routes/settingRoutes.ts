@@ -7,6 +7,6 @@ const router = Router();
 
 router.get('/', getSettings);
 
-router.post('/', verifyToken, isAdmin, upload.single('site_logo'), updateSettings);
+router.post('/', verifyToken, isAdmin, upload.any(), updateSettings);
 
 export default router;

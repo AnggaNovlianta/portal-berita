@@ -1,6 +1,6 @@
 export default {
   datasource: {
-    // PENTING: Ganti PASSWORD_ANDA dan NAMA_DB_ANDA sesuai milik Anda
-    url: "postgresql://postgres:adminsupersu@localhost:5432/portal_berita?schema=public",
+    // Gunakan Environment Variable agar kredensial aman, dengan fallback untuk development
+    url: process.env.DATABASE_URL || "postgresql://postgres:adminsupersu@localhost:5432/portal_berita?schema=public",
   }
 };

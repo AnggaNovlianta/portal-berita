@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, X, Loader2, TrendingUp, User } from 'lucide-react'; // Tambah ikon Trending & User
+import { Search, X, Loader2, TrendingUp, User, DollarSign, CloudSun } from 'lucide-react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import api, { BASE_URL } from './api';
+import Footer from './Footer';
+import AdSlot from './AdSlot';
 
 interface Category {
   id: string | number;
@@ -29,6 +31,16 @@ interface Post {
 interface SiteSettings {
   [key: string]: string;
 }
+
+// Komponen Jam Mandiri (Mencegah re-render seluruh halaman Home setiap 1 detik)
+const LiveClock: React.FC = () => {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <>{time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</>;
+};
 
 const Home: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -93,6 +105,30 @@ const Home: React.FC = () => {
       const response = await api.get('/settings');
       return response.data;
     }
+  });
+
+  // QUERY 5: Mengambil Data Kurs & Cuaca (Widget Info Terkini)
+  const { data: widgetData } = useQuery({
+    queryKey: ['widgetData'],
+    queryFn: async () => {
+      try {
+        // 1. Fetch USD to IDR (Tanpa API Key - Open Exchange Rates)
+        const exchangeRes = await fetch('https://open.er-api.com/v6/latest/USD');
+        const exchangeData = await exchangeRes.json();
+        const usdToIdr = exchangeData?.rates?.IDR || 15500;
+
+        // 2. Fetch Cuaca Jakarta (Tanpa API Key - Open-Meteo)
+        const weatherRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.2146&longitude=106.8451&current_weather=true');
+        const weatherData = await weatherRes.json();
+        const temperature = weatherData?.current_weather?.temperature || 32;
+
+        return { usdToIdr, temperature };
+      } catch (error) {
+        console.error("Gagal memuat widget", error);
+        return { usdToIdr: null, temperature: null };
+      }
+    },
+    refetchInterval: 15 * 60 * 1000, // Diperbarui otomatis setiap 15 menit
   });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -191,8 +227,34 @@ const Home: React.FC = () => {
         </div>
       </header>
 
+      {/* RUNNING TEXT (NEWS TICKER) */}
+      {posts.length > 0 && !isLoading && (
+        <div className="bg-slate-900 text-white flex items-center overflow-hidden border-b-2 border-blue-600 shadow-sm relative z-40">
+          <div className="bg-blue-600 text-white font-black px-4 sm:px-6 py-2.5 z-10 flex-shrink-0 flex items-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs shadow-[4px_0_15px_rgba(0,0,0,0.5)]">
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-ping absolute opacity-75"></span>
+            <span className="w-2 h-2 rounded-full bg-red-500 relative"></span>
+            Sekilas Info
+          </div>
+          <div className="flex-1 overflow-hidden relative flex items-center">
+            <div className="animate-ticker whitespace-nowrap flex items-center w-max py-2.5">
+              {posts.slice(0, 10).map((post: Post) => (
+                <span key={post.id} className="inline-flex items-center">
+                  <span className="font-black text-blue-500 mx-4 sm:mx-6">/ /</span>
+                  <Link to={`/berita/${post.slug}`} className="hover:text-blue-300 transition-colors font-semibold text-sm">
+                    {post.title}
+                  </Link>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KONTEN UTAMA */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        
+        {/* Slot Iklan Banner Atas */}
+        <AdSlot adKey="ad_leaderboard" height="100px" text="Space Iklan Leaderboard (728x90)" className="mb-8 hidden sm:flex" />
         
         {currentSearchQuery && (
           <div className="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
@@ -250,7 +312,7 @@ const Home: React.FC = () => {
                     <div className="w-full aspect-[16/9] bg-slate-100 rounded-xl overflow-hidden mb-5 relative">
 
                       {headline.thumbnail ? (
-                        <img src={`${BASE_URL}${headline.thumbnail}`} alt={headline.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <img src={`${BASE_URL}${headline.thumbnail}`} alt={headline.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400">Tanpa Gambar</div>
                       )}
@@ -276,7 +338,7 @@ const Home: React.FC = () => {
                       <Link to={`/berita/${post.slug}`} key={post.id} className="group flex flex-col sm:flex-row gap-5 py-6 border-b border-gray-100 hover:bg-slate-50 transition-colors px-2 -mx-2 rounded-lg">
                         <div className="w-full sm:w-[200px] aspect-video sm:aspect-square md:aspect-[4/3] flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden relative">
                           {post.thumbnail ? (
-                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">No Image</div>
                           )}
@@ -322,6 +384,58 @@ const Home: React.FC = () => {
             {/* ======================================================== */}
             <aside className="lg:col-span-1 hidden lg:block">
               <div className="sticky top-32">
+
+                {/* Slot Iklan Sidebar (Kotak) */}
+                <AdSlot adKey="ad_sidebar" height="250px" text="Space Iklan Kotak (300x250)" className="mb-10" />
+
+                {/* Widget Data Pelengkap (Placeholder) */}
+                <div className="mb-10 relative overflow-hidden bg-slate-900 text-white rounded-3xl p-6 shadow-2xl border-t-4 border-blue-500 group">
+                  {/* Animated Background Elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 opacity-10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-teal-500 opacity-10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-center mb-6 border-b border-slate-700/50 pb-4">
+                      <h3 className="font-black text-lg flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        LIVE INFO
+                      </h3>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-blue-400 font-mono tracking-wider"><LiveClock /> WIB</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">{currentDate}</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 text-sm font-medium">
+                      <div className="flex justify-between items-center group/item hover:bg-slate-800/50 p-2 -mx-2 rounded-lg transition-colors cursor-default">
+                        <span className="text-slate-300 flex items-center gap-2">
+                          <TrendingUp size={16} className="text-green-400 group-hover/item:scale-110 transition-transform" /> IHSG
+                        </span>
+                        <span className="text-green-400 font-bold">▲ 7,234.56 <span className="text-[10px] bg-green-900/50 px-1.5 py-0.5 rounded text-green-300 ml-1">+0.45%</span></span>
+                      </div>
+                      <div className="flex justify-between items-center group/item hover:bg-slate-800/50 p-2 -mx-2 rounded-lg transition-colors cursor-default">
+                        <span className="text-slate-300 flex items-center gap-2">
+                          <DollarSign size={16} className="text-amber-400 group-hover/item:scale-110 transition-transform" /> USD/IDR
+                        </span>
+                        <span className="text-amber-400 font-bold">
+                          {widgetData?.usdToIdr ? `Rp ${widgetData.usdToIdr.toLocaleString('id-ID')}` : <Loader2 size={14} className="animate-spin inline" />}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center group/item hover:bg-slate-800/50 p-2 -mx-2 rounded-lg transition-colors cursor-default">
+                        <span className="text-slate-300 flex items-center gap-2">
+                          <CloudSun size={16} className="text-sky-400 group-hover/item:scale-110 transition-transform" /> Cuaca JKT
+                        </span>
+                        <span className="text-sky-400 font-bold flex items-center gap-1">
+                          {widgetData?.temperature ? `${widgetData.temperature}°C` : <Loader2 size={14} className="animate-spin inline" />}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <h2 className="text-lg font-black text-slate-900 mb-6 border-b-2 border-slate-900 pb-2 flex items-center gap-2">
                   <TrendingUp size={20} className="text-blue-600" /> Berita Terpopuler
                 </h2>
@@ -351,6 +465,9 @@ const Home: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* FOOTER INFORMASI LEGAL & REDAKSI */}
+      <Footer />
     </div>
   );
 };

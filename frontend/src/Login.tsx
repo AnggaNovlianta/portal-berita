@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // 1. Wajib diimpor untuk pindah halaman
 import api, { getErrorMessage } from './api';
+import { GoogleOAuthProvider, GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 
 // 2. Ubah interface agar bisa menerima token
 interface LoginProps {
@@ -35,8 +36,25 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const response = await api.post('/auth/google', { token: credentialResponse.credential });
+      onLoginSuccess(response.data.token);
+      navigate('/dashboard');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
       <div className="bg-white p-10 rounded-2xl shadow-xl border-t-4 border-navy-primary w-full max-w-md">
         
         <div className="text-center mb-8">
@@ -66,7 +84,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
           
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Kata Sandi</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold">Kata Sandi</label>
+              <Link to="/forgot-password" className="text-xs text-blue-600 font-bold hover:underline">Lupa Kata Sandi?</Link>
+            </div>
             <input 
               type="password" 
               value={password}
@@ -84,12 +105,22 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           >
             {isLoading ? 'Memverifikasi...' : 'Masuk ke Sistem'}
           </button>
+
+          <div className="flex items-center my-6">
+            <div className="flex-grow border-t border-gray-200"></div>
+            <span className="px-3 text-xs text-gray-400 font-bold uppercase tracking-wider">Atau masuk dengan</span>
+            <div className="flex-grow border-t border-gray-200"></div>
+          </div>
+          <div className="flex justify-center">
+            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Google Login dibatalkan/gagal.')} />
+          </div>
         </form>
         <div className="mt-6 text-center text-sm text-gray-500 font-medium">
           Belum punya akun? <Link to="/register" className="text-blue-600 hover:underline font-bold">Daftar sekarang</Link>
         </div>
       </div>
-    </div>
+      </div>
+    </GoogleOAuthProvider>
   );
 };
 

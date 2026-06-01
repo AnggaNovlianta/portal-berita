@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom'; 
 import { Helmet } from 'react-helmet-async';
-import { Eye, ArrowLeft, Calendar, Clock, User } from 'lucide-react';
+import { Eye, ArrowLeft, Calendar, Clock, User, Share2, Link2, MessageCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api, { BASE_URL } from './api';
+import Footer from './Footer';
+import AdSlot from './AdSlot';
 
 interface Post {
   id: string;
@@ -19,6 +21,19 @@ interface Post {
 
 const PostDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // EFEK: Menghitung persentase gulir (scroll) halaman untuk Progress Bar
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollTop;
+      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scroll = `${(totalScroll / windowHeight) * 100}`;
+      setScrollProgress(Number(scroll));
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // EFEK SAMPING: Menambah tayangan (views) dan menggulung layar ke atas setiap kali URL berubah
   useEffect(() => {
@@ -96,8 +111,21 @@ const PostDetail: React.FC = () => {
   const wordCount = post.content.replace(/<[^>]+>/g, '').split(/\s+/).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
+  // Fungsi Berbagi
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const shareToWhatsApp = () => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(post.title + ' - ' + shareUrl)}`);
+  const shareToFacebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
+  const shareToTwitter = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}`);
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    alert('Tautan berita berhasil disalin!');
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900">
+      {/* Reading Progress Bar (Bilah Indikator Membaca) */}
+      <div className="fixed top-0 left-0 h-1.5 bg-blue-600 z-[60] transition-all duration-150 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]" style={{ width: `${scrollProgress}%` }}></div>
+
       <Helmet>
         <title>{post.title} | Pustaka Publik</title>
         <meta name="description" content={post.content.replace(/<[^>]+>/g, '').substring(0, 160)} />
@@ -120,9 +148,15 @@ const PostDetail: React.FC = () => {
       <main className="max-w-3xl mx-auto px-6 pb-20">
         <article className="w-full">
           <div className="mb-6">
-            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
-              {post.category?.name || 'Berita Umum'}
-            </span>
+            {post.category ? (
+              <Link to={`/kategori/${post.category.slug}`} className="inline-block text-[11px] font-black uppercase tracking-[0.2em] text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-1.5 rounded-full border border-blue-100 transition-colors">
+                {post.category.name}
+              </Link>
+            ) : (
+              <span className="inline-block text-[11px] font-black uppercase tracking-[0.2em] text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
+                Berita Umum
+              </span>
+            )}
           </div>
 
           <h1 className="text-4xl md:text-5xl font-black leading-tight mb-8 break-words">
@@ -146,18 +180,42 @@ const PostDetail: React.FC = () => {
 
           {imageUrl && (
             <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden mb-10 shadow-lg bg-slate-100">
-              <img src={imageUrl} alt={post.title} className="w-full h-full object-cover" />
+              <img src={imageUrl} alt={post.title} loading="lazy" className="w-full h-full object-cover" />
             </div>
           )}
+
+          {/* Slot Iklan Bawah Judul / Atas Artikel */}
+          <AdSlot adKey="ad_article_top" height="90px" text="Space Iklan Banner Artikel Atas" className="mb-10" />
 
           <div 
             className="prose prose-slate prose-lg max-w-none w-full 
                        prose-headings:font-black prose-a:text-blue-600 
                        prose-img:rounded-2xl prose-img:shadow-lg prose-img:max-w-full
                        prose-table:block prose-table:overflow-x-auto
-                       break-words overflow-hidden"
+                       break-words overflow-hidden dark:prose-invert"
             dangerouslySetInnerHTML={{ __html: post.content }} 
           />
+
+          {/* Slot Iklan Akhir Artikel */}
+          <AdSlot adKey="ad_article_bottom" height="90px" text="Space Iklan Banner Artikel Bawah" className="mt-12" />
+
+          {/* Tombol Bagikan (User Engagement) */}
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between py-6 border-y border-slate-100 gap-4">
+            <span className="font-bold text-slate-600 flex items-center gap-2"><Share2 size={20}/> Bagikan berita ini:</span>
+            <div className="flex gap-3">
+              <button onClick={shareToWhatsApp} className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-bold hover:bg-green-600 transition-colors">WhatsApp</button>
+              <button onClick={shareToFacebook} className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors">Facebook</button>
+              <button onClick={shareToTwitter} className="px-4 py-2 bg-slate-800 text-white rounded-full text-sm font-bold hover:bg-slate-900 transition-colors">X / Twitter</button>
+              <button onClick={copyLink} className="p-2 bg-gray-100 text-slate-600 rounded-full hover:bg-gray-200 transition-colors" title="Salin Tautan"><Link2 size={20} /></button>
+            </div>
+          </div>
+
+          {/* Zona Komentar Pengguna (Placeholder/Integrasi Siap Pakai) */}
+          <div className="mt-8 bg-slate-50 p-8 rounded-2xl border border-slate-100 text-center">
+            <MessageCircle size={40} className="mx-auto text-slate-300 mb-3" />
+            <h3 className="text-lg font-black text-slate-800 mb-2">Kolom Komentar</h3>
+            <p className="text-slate-500 text-sm">Masuk untuk memberikan komentar. <i>(Fitur komentar sedang dalam pengembangan backend / dapat diintegrasikan dengan Plugin Disqus)</i></p>
+          </div>
 
           {/* Bagian Berita Terkait */}
           {relatedPosts.length > 0 && (
@@ -181,6 +239,9 @@ const PostDetail: React.FC = () => {
           )}
         </article>
       </main>
+
+      {/* FOOTER INFORMASI LEGAL & REDAKSI */}
+      <Footer />
     </div>
   );
 };

@@ -68,6 +68,17 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, userRole, onSubmit }) 
     }
   };
 
+  // Konfigurasi Toolbar Multimedia untuk Editor
+  const quillModules = React.useMemo(() => ({
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+      [{'list': 'ordered'}, {'list': 'bullet'}],
+      ['link', 'image', 'video'], // Fitur multimedia: gambar dan video
+      ['clean']
+    ],
+  }), []);
+
   // =========================================
   // FUNGSI SUBMIT DENGAN STATUS DRAF/PUBLIK
   // =========================================
@@ -176,6 +187,7 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, userRole, onSubmit }) 
         <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white [&_.ql-toolbar]:border-none [&_.ql-toolbar]:bg-gray-50 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-slate-700">
           <ReactQuill 
             theme="snow" 
+            modules={quillModules}
             value={formData.content} 
             onChange={(val: string) => setFormData({...formData, content: val})} 
             placeholder="Ketik isi berita di sini..."

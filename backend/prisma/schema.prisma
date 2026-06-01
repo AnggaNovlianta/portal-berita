@@ -25,6 +25,8 @@ model User {
   password  String
   name      String
   isApproved Boolean @default(false)
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
   roleId    Int
   role      Role     @relation(fields: [roleId], references: [id])
   posts     Post[]

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { getErrorMessage } from './api';
+import { GoogleOAuthProvider, GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 
 const Register: React.FC = () => {
   const [name, setName] = useState('');
@@ -29,7 +30,24 @@ const Register: React.FC = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const response = await api.post('/auth/google', { token: credentialResponse.credential });
+      localStorage.setItem('token', response.data.token);
+      window.location.href = '/dashboard';
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
       <div className="bg-white p-10 rounded-2xl shadow-xl border-t-4 border-navy-primary w-full max-w-md">
         
@@ -69,10 +87,24 @@ const Register: React.FC = () => {
           <button type="submit" disabled={isLoading} className="mt-4 w-full px-6 py-4 bg-navy-primary text-white font-bold rounded-xl shadow-lg hover:bg-opacity-90 hover:shadow-xl transition-all disabled:opacity-70 disabled:cursor-not-allowed">
             {isLoading ? 'Memproses...' : 'Daftar Sekarang'}
           </button>
+
+            <div className="flex items-center my-6">
+              <div className="flex-grow border-t border-gray-200"></div>
+              <span className="px-3 text-xs text-gray-400 font-bold uppercase tracking-wider">Atau daftar dengan</span>
+              <div className="flex-grow border-t border-gray-200"></div>
+            </div>
+            
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google Sign-In dibatalkan atau gagal.')}
+              />
+            </div>
         </form>
         <div className="mt-6 text-center text-sm text-gray-500 font-medium">Sudah punya akun? <Link to="/login" className="text-blue-600 hover:underline font-bold">Masuk di sini</Link></div>
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 };
 export default Register;

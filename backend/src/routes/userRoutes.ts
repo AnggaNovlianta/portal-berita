@@ -7,7 +7,8 @@ import {
   approveUser,
   getCurrentUserProfile,
   updateCurrentUserProfile,
-  changeCurrentUserPassword
+  changeCurrentUserPassword,
+  updateUserRole
 } from '../controllers/userController';
 import { verifyToken, isAdmin } from '../middlewares/authMiddleware';
 
@@ -22,5 +23,6 @@ router.post('/', verifyToken, isAdmin, createUser); // Admin: Create user
 router.delete('/:id', verifyToken, isAdmin, deleteUser); // Admin: Delete user
 router.patch('/:id/reset-password', verifyToken, isAdmin, resetPassword); // Admin: Approve user
 router.patch('/:id/approve', verifyToken, isAdmin, approveUser); // Admin: Approve user
+router.patch('/:id/role', verifyToken, isAdmin, updateUserRole); // Admin: Update user role
 
 export default router;
