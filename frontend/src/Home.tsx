@@ -5,6 +5,7 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import api, { BASE_URL } from './api';
 import Footer from './Footer';
 import AdSlot from './AdSlot';
+import DarkModeToggle from './DarkModeToggle';
 
 interface Category {
   id: string | number;
@@ -187,7 +188,8 @@ const Home: React.FC = () => {
             <span>{firstPart} <span className="text-blue-600">{lastWord}</span></span>
           </Link>
           
-          <form onSubmit={handleSearchSubmit} className="w-full md:max-w-md relative group">
+          <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
+            <form onSubmit={handleSearchSubmit} className="w-full md:w-[300px] lg:w-[400px] relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search size={18} className="text-gray-400 group-focus-within:text-blue-600 transition-colors" />
             </div>
@@ -203,7 +205,9 @@ const Home: React.FC = () => {
                 <X size={16} />
               </button>
             )}
-          </form>
+            </form>
+            <DarkModeToggle />
+          </div>
         </div>
 
         <div className="border-t border-gray-100">
@@ -334,7 +338,7 @@ const Home: React.FC = () => {
                   <Link to={`/berita/${headline.slug}`} className={`group flex flex-col ${subHeadlines.length > 0 ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
                     <div className="w-full aspect-[16/9] md:aspect-[2/1] rounded-3xl overflow-hidden shadow-lg mb-5 relative">
                       {headline.thumbnail ? (
-                        <img src={`${BASE_URL}${headline.thumbnail}`} alt={headline.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                        <img src={`${BASE_URL}${headline.thumbnail}`} alt={headline.title} className="w-full h-full object-contain bg-slate-100 group-hover:scale-105 transition-transform duration-700 ease-out" />
                       ) : (
                         <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">Tanpa Gambar</div>
                       )}
@@ -363,7 +367,7 @@ const Home: React.FC = () => {
                       <Link to={`/berita/${post.slug}`} key={post.id} className="group flex-1 flex flex-col">
                         <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-md mb-4 relative">
                           {post.thumbnail ? (
-                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} className="w-full h-full object-contain bg-slate-100 group-hover:scale-105 transition-transform duration-700 ease-out" />
                           ) : (
                             <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">Tanpa Gambar</div>
                           )}
@@ -398,7 +402,7 @@ const Home: React.FC = () => {
                       <Link to={`/berita/${post.slug}`} key={post.id} className="group flex flex-col sm:flex-row gap-5 py-6 border-b border-gray-100 hover:bg-slate-50 transition-colors px-2 -mx-2 rounded-lg">
                         <div className="w-full sm:w-[200px] aspect-video sm:aspect-square md:aspect-[4/3] flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden relative">
                           {post.thumbnail ? (
-                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} loading="lazy" className="w-full h-full object-contain bg-slate-100 group-hover:scale-110 transition-transform duration-500" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">No Image</div>
                           )}

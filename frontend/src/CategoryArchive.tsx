@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import api, { BASE_URL } from './api';
 import Footer from './Footer';
+import DarkModeToggle from './DarkModeToggle';
 
 interface Category {
   id: string | number;
@@ -91,9 +92,12 @@ const CategoryArchive: React.FC = () => {
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
           <span className="font-bold text-sm uppercase tracking-widest">Beranda</span>
         </Link>
-        <span className="text-sm font-black tracking-tighter hidden sm:block">
-          {siteName.toUpperCase()}
-        </span>
+        <div className="flex items-center gap-4">
+          <DarkModeToggle />
+          <span className="text-sm font-black tracking-tighter hidden sm:block">
+            {siteName.toUpperCase()}
+          </span>
+        </div>
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 py-12 flex-grow w-full">

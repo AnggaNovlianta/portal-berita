@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 
-const DarkModeToggle: React.FC = () => {
+interface DarkModeToggleProps {
+  className?: string;
+}
+
+const DarkModeToggle: React.FC<DarkModeToggleProps> = ({ className = '' }) => {
   const [isDark, setIsDark] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -33,9 +37,9 @@ const DarkModeToggle: React.FC = () => {
     <button
       onClick={toggleDarkMode}
       aria-label="Toggle Dark Mode"
-      className="fixed bottom-8 left-8 z-[90] p-3.5 bg-slate-800 dark:bg-yellow-400 text-white dark:text-slate-900 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:scale-110 transition-all duration-300"
+      className={`p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-yellow-400 transition-colors ${className}`}
     >
-      {isDark ? <Sun size={24} /> : <Moon size={24} />}
+      {isDark ? <Sun size={20} /> : <Moon size={20} />}
     </button>
   );
 };

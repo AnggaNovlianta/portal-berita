@@ -116,10 +116,10 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, userRole, onSubmit }) 
       {/* Thumbnail Upload */}
       <div>
         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Thumbnail Utama</label>
-        <div className="relative w-full h-48 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden group hover:bg-gray-100 transition-all">
+        <div className="relative w-full min-h-[12rem] bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden group hover:bg-gray-100 transition-all p-2">
           {preview ? (
             <>
-              <img src={preview} className="w-full h-full object-cover" alt="preview" />
+              <img src={preview} className="w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl shadow-sm" alt="preview" />
               <button 
                 type="button" 
                 onClick={() => { setPreview(null); setFile(null); }}
@@ -130,7 +130,7 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, userRole, onSubmit }) 
               </button>
             </>
           ) : (
-            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer text-gray-400 hover:text-blue-600 transition-colors">
+            <label className="flex flex-col items-center justify-center w-full h-full min-h-[12rem] cursor-pointer text-gray-400 hover:text-blue-600 transition-colors">
               <Upload size={32} />
               <span className="mt-2 text-xs font-bold">Upload Gambar</span>
               <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />

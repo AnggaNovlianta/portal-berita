@@ -4,6 +4,7 @@ import { ArrowLeft, User } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import api, { BASE_URL } from './api';
+import DarkModeToggle from './DarkModeToggle';
 
 interface SiteSettings {
   [key: string]: string;
@@ -48,9 +49,12 @@ const EditorialBoard: React.FC = () => {
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
           <span className="font-bold text-sm uppercase tracking-widest">Kembali ke Beranda</span>
         </Link>
-        <span className="text-sm font-black tracking-tighter hidden sm:block">
-          {firstPart} <span className="text-blue-600">{lastWord}</span>
-        </span>
+        <div className="flex items-center gap-4">
+          <DarkModeToggle />
+          <span className="text-sm font-black tracking-tighter hidden sm:block">
+            {firstPart} <span className="text-blue-600">{lastWord}</span>
+          </span>
+        </div>
       </nav>
 
       {/* Konten Utama */}

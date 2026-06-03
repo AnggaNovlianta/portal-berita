@@ -1,0 +1,33 @@
+# Dependensi
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment variables (SANGAT PENTING)
+.env
+.env.*
+!.env.example
+
+# File Log
+logs/
+*.log
+npm-debug.log*
+
+# Uploads & Media (Agar gambar yang diupload di lokal tidak memenuhi repo)
+backend/uploads/
+
+# Prisma / Database lokal
+*.db
+*.db-journal
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Cache
+.eslintcache
+.tsbuildinfo

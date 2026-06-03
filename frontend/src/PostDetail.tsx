@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import api, { BASE_URL } from './api';
 import Footer from './Footer';
 import AdSlot from './AdSlot';
+import DarkModeToggle from './DarkModeToggle';
 
 interface Post {
   id: string;
@@ -157,7 +158,10 @@ const PostDetail: React.FC = () => {
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
           <span className="font-bold text-sm uppercase tracking-widest">Kembali</span>
         </Link>
-        <span className="text-sm font-black tracking-tighter">PUSTAKA<span className="text-blue-600">PUBLIK</span></span>
+        <div className="flex items-center gap-4">
+          <DarkModeToggle />
+          <span className="text-sm font-black tracking-tighter">PUSTAKA<span className="text-blue-600">PUBLIK</span></span>
+        </div>
       </nav>
 
       {/* Main Content */}
@@ -204,9 +208,9 @@ const PostDetail: React.FC = () => {
           </div>
 
           {imageUrl && (
-            <figure className="mb-12">
-              <div className="w-full aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] bg-slate-100 group relative">
-                <img src={imageUrl} alt={post.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+            <figure className="mb-12 flex flex-col items-center">
+              <div className="relative rounded-3xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] bg-slate-100 group inline-block max-w-full">
+                <img src={imageUrl} alt={post.title} loading="lazy" className="w-auto h-auto max-w-full max-h-[70vh] object-contain group-hover:scale-105 transition-transform duration-700 ease-out" />
                 <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-3xl pointer-events-none"></div>
               </div>
               <figcaption className="text-center text-sm text-slate-400 mt-4 italic px-4">
@@ -277,7 +281,7 @@ const PostDetail: React.FC = () => {
                   <Link to={`/berita/${rp.slug}`} key={rp.id} className="group flex flex-col bg-white border border-slate-100 rounded-3xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1">
                     <div className="w-full aspect-[4/3] bg-slate-100 relative overflow-hidden">
                       {rp.thumbnail ? (
-                        <img src={`${BASE_URL}${rp.thumbnail}`} alt={rp.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" />
+                        <img src={`${BASE_URL}${rp.thumbnail}`} alt={rp.title} className="w-full h-full object-contain bg-slate-100 group-hover:scale-105 transition-transform duration-500 ease-out" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-medium">Tanpa Gambar</div>
                       )}

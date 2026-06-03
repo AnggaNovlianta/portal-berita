@@ -13,7 +13,6 @@ import PrivacyPolicy from './PrivacyPolicy';
 import PedomanMediaSiber from './PedomanMediaSiber';
 import CategoryArchive from './CategoryArchive';
 import BackToTop from './BackToTop';
-import DarkModeToggle from './DarkModeToggle';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -29,7 +28,7 @@ const App: React.FC = () => {
         return false;
       }
       return true;
-    } catch (e) {
+    } catch {
       return false; // Token palsu/tidak dapat diparse akan ditolak
     }
   });
@@ -82,7 +81,6 @@ const App: React.FC = () => {
       </Routes>
       
       <BackToTop />
-      <DarkModeToggle />
     </Router>
   );
 };
