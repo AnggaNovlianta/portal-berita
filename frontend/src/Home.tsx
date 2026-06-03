@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, X, Loader2, TrendingUp, User, DollarSign, CloudSun } from 'lucide-react';
+import { Search, X, Loader2, TrendingUp, User, DollarSign, CloudSun, Mail } from 'lucide-react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import api, { BASE_URL } from './api';
 import Footer from './Footer';
@@ -151,8 +151,10 @@ const Home: React.FC = () => {
 
     // Menggabungkan semua halaman data posts yang telah di-fetch
   const posts = data?.pages.flatMap(page => page.data ? page.data : page) || [];
-  const headline = posts.length > 0 ? posts[0] : null;
-  const otherPosts = posts.length > 1 ? posts.slice(1) : [];
+  const isSearch = !!currentSearchQuery;
+  const headline = !isSearch && posts.length > 0 ? posts[0] : null;
+  const subHeadlines = !isSearch && posts.length > 2 ? posts.slice(1, 3) : [];
+  const otherPosts = isSearch ? posts : (posts.length > 2 ? posts.slice(3) : (posts.length > 1 ? posts.slice(1) : []));
   const currentDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   // Logika untuk memecah nama website menjadi dua bagian untuk pewarnaan
@@ -263,70 +265,128 @@ const Home: React.FC = () => {
         )}
 
         {isLoading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 animate-pulse">
-            <div className="lg:col-span-2">
-              {/* Skeleton Berita Utama */}
-
-              <div>
-                <div className="w-48 h-6 bg-slate-200 rounded mb-6"></div>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex flex-col sm:flex-row gap-5 py-6 border-b border-gray-100">
-                    <div className="w-full sm:w-[200px] aspect-video sm:aspect-square md:aspect-[4/3] bg-slate-200 rounded-lg"></div>
-                    <div className="flex flex-col flex-1 py-2">
-                      <div className="w-20 h-3 bg-slate-200 rounded mb-2"></div>
-                      <div className="w-full h-6 bg-slate-200 rounded mb-2"></div>
-                      <div className="w-3/4 h-6 bg-slate-200 rounded mb-4"></div>
-                      <div className="w-full h-3 bg-slate-200 rounded mb-2"></div>
-                      <div className="w-1/2 h-3 bg-slate-200 rounded mt-auto"></div>
+          <>
+            {/* Skeleton Hero Layout */}
+            {!isSearch && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 mb-12 animate-pulse">
+                <div className="lg:col-span-8 flex flex-col">
+                  <div className="w-full aspect-[16/9] md:aspect-[2/1] bg-slate-200 rounded-3xl mb-5"></div>
+                  <div className="w-24 h-6 bg-slate-200 rounded-full mb-3"></div>
+                  <div className="w-full h-10 bg-slate-200 rounded-lg mb-2"></div>
+                  <div className="w-2/3 h-10 bg-slate-200 rounded-lg mb-4"></div>
+                  <div className="w-1/3 h-4 bg-slate-200 rounded-lg"></div>
+                </div>
+                <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-8">
+                  {[1, 2].map(i => (
+                    <div key={i} className="flex-1 flex flex-col">
+                      <div className="w-full aspect-video bg-slate-200 rounded-2xl mb-4"></div>
+                      <div className="w-20 h-5 bg-slate-200 rounded-full mb-2"></div>
+                      <div className="w-full h-6 bg-slate-200 rounded-lg mb-2"></div>
+                      <div className="w-4/5 h-6 bg-slate-200 rounded-lg"></div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-            {/* Skeleton Tangga Berita Populer (Sidebar) */}
-            <aside className="lg:col-span-1 hidden lg:block">
-              <div className="w-48 h-6 bg-slate-200 rounded mb-6"></div>
-              <div className="flex flex-col gap-6">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="flex gap-4 items-start">
-                    <div className="w-10 h-10 bg-slate-200 rounded"></div>
-                    <div className="flex-1">
-                      <div className="w-24 h-3 bg-slate-200 rounded mb-2"></div>
-                      <div className="w-full h-4 bg-slate-200 rounded mb-1"></div>
-                      <div className="w-3/4 h-4 bg-slate-200 rounded"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </aside>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
+            )}
             
-                        {/* KOLOM KIRI (70%) */}
-            <div className="lg:col-span-2">
-              
-              {headline && (
-                <article className="mb-10 pb-10 border-b-2 border-gray-100 group">
-                  <Link to={`/berita/${headline.slug}`} className="block">
-                    <div className="w-full aspect-[16/9] bg-slate-100 rounded-xl overflow-hidden mb-5 relative">
-
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 animate-pulse mt-8">
+              <div className="lg:col-span-2">
+                <div>
+                  <div className="w-48 h-6 bg-slate-200 rounded mb-6"></div>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex flex-col sm:flex-row gap-5 py-6 border-b border-gray-100">
+                      <div className="w-full sm:w-[200px] aspect-video sm:aspect-square md:aspect-[4/3] bg-slate-200 rounded-lg flex-shrink-0"></div>
+                      <div className="flex flex-col flex-1 py-2">
+                        <div className="w-20 h-3 bg-slate-200 rounded mb-2"></div>
+                        <div className="w-full h-6 bg-slate-200 rounded mb-2"></div>
+                        <div className="w-3/4 h-6 bg-slate-200 rounded mb-4"></div>
+                        <div className="w-full h-3 bg-slate-200 rounded mb-2"></div>
+                        <div className="w-1/2 h-3 bg-slate-200 rounded mt-auto"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <aside className="lg:col-span-1 hidden lg:block">
+                <div className="w-48 h-6 bg-slate-200 rounded mb-6"></div>
+                <div className="flex flex-col gap-6">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="flex gap-4 items-start">
+                      <div className="w-10 h-10 bg-slate-200 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="w-24 h-3 bg-slate-200 rounded mb-2"></div>
+                        <div className="w-full h-4 bg-slate-200 rounded mb-1"></div>
+                        <div className="w-3/4 h-4 bg-slate-200 rounded"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </aside>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* HERO SECTION (Tampil Mewah & Profesional) */}
+            {(headline || subHeadlines.length > 0) && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 mb-12">
+                {/* Headline Utama (Kiri - 8 Kolom) */}
+                {headline && (
+                  <Link to={`/berita/${headline.slug}`} className={`group flex flex-col ${subHeadlines.length > 0 ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+                    <div className="w-full aspect-[16/9] md:aspect-[2/1] rounded-3xl overflow-hidden shadow-lg mb-5 relative">
                       {headline.thumbnail ? (
-                        <img src={`${BASE_URL}${headline.thumbnail}`} alt={headline.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <img src={`${BASE_URL}${headline.thumbnail}`} alt={headline.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400">Tanpa Gambar</div>
+                        <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">Tanpa Gambar</div>
                       )}
+                      <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-3xl pointer-events-none"></div>
                     </div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-xs font-black text-blue-600 uppercase tracking-widest">{headline.category?.name || 'Berita Utama'}</span>
-                      <span className="text-xs text-gray-400 font-medium flex items-center gap-1 border-l border-gray-300 pl-3"><User size={12} /> {headline.author?.name || 'Redaksi'}</span>
-                      <span className="text-xs text-gray-400 font-medium">{new Date(headline.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <div>
+                      <span className="inline-block bg-blue-50 text-blue-600 text-[10px] sm:text-xs font-black px-3 py-1.5 rounded-full uppercase tracking-widest mb-3">
+                        {headline.category?.name || 'Berita Utama'}
+                      </span>
+                      <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.15] mb-4 group-hover:text-blue-600 transition-colors">
+                        {headline.title}
+                      </h1>
+                      <div className="flex items-center gap-3 text-slate-500 text-xs sm:text-sm font-medium">
+                        <span className="flex items-center gap-1.5"><User size={14} /> {headline.author?.name || 'Redaksi'}</span>
+                        <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
+                        <span>{new Date(headline.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                      </div>
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-3 group-hover:text-blue-600 transition-colors">{headline.title}</h1>
-                    <p className="text-slate-600 text-base md:text-lg line-clamp-3">{stripHtml(headline.content)}</p>
                   </Link>
-                </article>
-              )}
+                )}
+
+                {/* Sub Headline (Kanan - 4 Kolom) */}
+                {subHeadlines.length > 0 && (
+                  <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-8">
+                    {subHeadlines.map(post => (
+                      <Link to={`/berita/${post.slug}`} key={post.id} className="group flex-1 flex flex-col">
+                        <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-md mb-4 relative">
+                          {post.thumbnail ? (
+                            <img src={`${BASE_URL}${post.thumbnail}`} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">Tanpa Gambar</div>
+                          )}
+                          <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-2xl pointer-events-none"></div>
+                        </div>
+                        <div>
+                          <span className="inline-block bg-blue-50 text-blue-600 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest mb-2">
+                            {post.category?.name || 'Kabar'}
+                          </span>
+                          <h2 className="text-lg md:text-xl font-black text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-3">
+                            {post.title}
+                          </h2>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
+              {/* KOLOM KIRI (70%) */}
+              <div className="lg:col-span-2">
 
               {otherPosts.length > 0 && (
                 <div>
@@ -344,14 +404,33 @@ const Home: React.FC = () => {
                           )}
                         </div>
                         <div className="flex flex-col justify-center">
-                          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-2">{post.category?.name || 'Kabar'}</span>
-                          <h3 className="text-lg md:text-xl font-black text-slate-900 leading-snug mb-2 group-hover:text-blue-600 transition-colors">{post.title}</h3>
+                          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-2 bg-blue-50 px-2.5 py-0.5 rounded-full w-fit">{post.category?.name || 'Kabar'}</span>
+                          <h3 className="text-lg md:text-xl font-black text-slate-900 leading-snug mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">{post.title}</h3>
                           <p className="text-sm text-slate-500 line-clamp-2 mb-2">{stripHtml(post.content)}</p>
                           <span className="text-[11px] text-gray-400 font-medium mt-auto flex items-center gap-2">{new Date(post.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} <span className="w-1 h-1 bg-gray-300 rounded-full"></span> {post.author?.name || 'Redaksi'}</span>
                         </div>
                       </Link>
                     ))}
                   </div>
+
+                  {/* Widget Berlangganan (Newsletter) Mewah */}
+                  {!isSearch && (
+                    <div className="my-12 bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 rounded-3xl p-8 md:p-10 text-white shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 opacity-20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+                      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div className="flex-1 text-center md:text-left">
+                          <h3 className="text-2xl md:text-3xl font-black mb-2 tracking-tight flex items-center justify-center md:justify-start gap-3"><Mail className="text-blue-400" size={28} /> Dapatkan Akses Eksklusif</h3>
+                          <p className="text-blue-100 font-medium text-sm md:text-base">Berlangganan buletin kami untuk mendapatkan ringkasan berita pilihan langsung ke email Anda setiap pagi.</p>
+                        </div>
+                        <div className="w-full md:w-auto flex-shrink-0">
+                          <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => { e.preventDefault(); alert('Terima kasih telah berlangganan!'); }}>
+                            <input type="email" placeholder="Alamat email Anda..." required className="px-5 py-3.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all font-medium min-w-[250px]" />
+                            <button type="submit" className="px-6 py-3.5 bg-blue-500 hover:bg-blue-400 text-white font-black rounded-xl transition-colors shadow-lg hover:shadow-blue-500/50">Berlangganan</button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {hasNextPage && (
                     <div className="mt-10 mb-8 flex justify-center">
@@ -382,8 +461,8 @@ const Home: React.FC = () => {
             {/* ======================================================== */}
             {/* KOLOM KANAN (30%): TANGGA BERITA TERPOPULER */}
             {/* ======================================================== */}
-            <aside className="lg:col-span-1 hidden lg:block">
-              <div className="sticky top-32">
+            <aside className="lg:col-span-1 mt-12 lg:mt-0 pt-10 lg:pt-0 border-t-4 border-slate-100 lg:border-none">
+              <div className="sticky top-28">
 
                 {/* Slot Iklan Sidebar (Kotak) */}
                 <AdSlot adKey="ad_sidebar" height="250px" text="Space Iklan Kotak (300x250)" className="mb-10" />
@@ -444,7 +523,7 @@ const Home: React.FC = () => {
                     <Link to={`/berita/${post.slug}`} key={post.id} className="group flex gap-4 items-start">
                       {/* Nomor Urut Tangga Populer */}
                       <span className="text-4xl font-black text-gray-200 group-hover:text-blue-600 transition-colors w-10 text-center font-mono">
-                        {String(index + 1).padStart(2, '0')}
+                        {index + 1}
                       </span>
                       <div>
                         <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1 block">
@@ -461,8 +540,8 @@ const Home: React.FC = () => {
                 </div>
               </div>
             </aside>
-
-          </div>
+            </div>
+          </>
         )}
       </main>
 

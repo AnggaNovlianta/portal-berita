@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from './utils/prisma';
 import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
 
 async function main() {
   // 1. Pastikan Role sudah ada

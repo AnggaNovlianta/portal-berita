@@ -18,6 +18,12 @@ export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction)
     return;
   }
 
+  if (!process.env.JWT_SECRET) {
+    console.error("🔥 [ERROR]: JWT_SECRET tidak terdefinisi pada environment variables.");
+    res.status(500).json({ message: 'Terjadi kesalahan konfigurasi server (Internal Error).' });
+    return;
+  }
+
   try {
     // 2. Verifikasi apakah token ini asli buatan server kita (menggunakan Secret Key)
     const verified = jwt.verify(token, process.env.JWT_SECRET as string);

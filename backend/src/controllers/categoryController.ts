@@ -22,7 +22,7 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
   try {
     const { name } = req.body; // Frontend cukup mengirimkan 'name' saja
 
-    if (!name) {
+    if (typeof name !== 'string' || name.trim().length === 0) {
       res.status(400).json({ message: 'Nama kategori tidak boleh kosong!' });
       return;
     }
@@ -59,10 +59,14 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
 // ==========================================
 export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const id = parseInt(req.params.id as string); 
+    const id = parseInt(req.params.id as string);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ message: 'ID kategori tidak valid.' });
+      return;
+    }
+
     const { name } = req.body;
-    
-    if (!name) {
+    if (typeof name !== 'string' || name.trim().length === 0) {
       res.status(400).json({ message: 'Nama kategori tidak boleh kosong!' });
       return;
     }

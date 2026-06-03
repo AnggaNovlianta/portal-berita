@@ -4,19 +4,23 @@ import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import { isValidEmail, isMinLength, isNonEmptyString } from '../utils/validation';
 
 // 1. FUNGSI REGISTRASI (Mendaftar Akun)
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name, roleName = 'Jurnalis' } = req.body;
 
-    // Keamanan: Tolak jika ada yang mencoba mendaftar sebagai Admin dari luar
+    if (!isNonEmptyString(name) || !isValidEmail(email) || !isMinLength(password, 6)) {
+      res.status(400).json({ message: 'Nama, email valid, dan password minimal 6 karakter wajib diisi.' });
+      return;
+    }
+
     if (roleName === 'Admin') {
       res.status(403).json({ message: 'Tidak diizinkan mendaftar sebagai Admin!' });
       return;
     }
 
-    // Cek apakah email sudah terdaftar sebelumnya
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       res.status(400).json({ message: 'Email sudah terdaftar!' });
@@ -55,10 +59,16 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
+    const genericMessage = 'Jika email tersebut terdaftar, Anda akan menerima tautan pemulihan dalam beberapa menit.';
+
+    if (!isValidEmail(email)) {
+      res.status(200).json({ message: genericMessage });
+      return;
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
-    
     if (!user) {
-      res.status(404).json({ message: 'Alamat email tidak ditemukan di sistem.' });
+      res.status(200).json({ message: genericMessage });
       return;
     }
 
@@ -124,8 +134,13 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 export const resetPasswordWithToken = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token, newPassword } = req.body;
-    const user = await prisma.user.findFirst({ where: { resetPasswordToken: token, resetPasswordExpires: { gte: new Date() } } });
 
+    if (!isNonEmptyString(token) || !isMinLength(newPassword, 6)) {
+      res.status(400).json({ message: 'Token dan kata sandi baru minimal 6 karakter wajib diisi.' });
+      return;
+    }
+
+    const user = await prisma.user.findFirst({ where: { resetPasswordToken: token, resetPasswordExpires: { gte: new Date() } } });
     if (!user) { res.status(400).json({ message: 'Token pemulihan tidak valid atau sudah kedaluwarsa.' }); return; }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -142,7 +157,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // Cari user di database
+    if (!isValidEmail(email) || !isNonEmptyString(password)) {
+      res.status(400).json({ message: 'Email dan password wajib diisi dengan format yang benar.' });
+      return;
+    }
+
     const user = await prisma.user.findUnique({ where: { email }, include: { role: true } });
     if (!user) {
       res.status(401).json({ message: 'Email atau password salah!' });
@@ -180,7 +199,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const googleLogin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.body;
-    
+
+    if (!isNonEmptyString(token)) {
+      res.status(400).json({ message: 'Token Google wajib diisi.' });
+      return;
+    }
+
     // Verifikasi token dari Google
     const googleResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
     const payload = await googleResponse.json();

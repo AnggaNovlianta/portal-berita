@@ -34,8 +34,8 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="bg-slate-900 text-slate-400 py-12 mt-12 border-t-4 border-blue-600">
-      <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div className="md:col-span-2">
+      <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="sm:col-span-2 md:col-span-2">
           <h2 className="text-2xl font-black text-white mb-4 tracking-tighter">
             {firstPart} <span className="text-blue-500">{lastWord}</span>
           </h2>

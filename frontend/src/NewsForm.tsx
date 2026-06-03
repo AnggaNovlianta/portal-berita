@@ -184,7 +184,7 @@ const NewsForm: React.FC<NewsFormProps> = ({ initialData, userRole, onSubmit }) 
       {/* Editor Konten */}
       <div>
         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Konten Berita</label>
-        <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white [&_.ql-toolbar]:border-none [&_.ql-toolbar]:bg-gray-50 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-slate-700">
+        <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white [&_.ql-toolbar]:border-none [&_.ql-toolbar]:bg-gray-50 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[450px] [&_.ql-editor]:text-slate-700 [&_.ql-editor]:text-lg [&_.ql-editor]:leading-relaxed">
           <ReactQuill 
             theme="snow" 
             modules={quillModules}

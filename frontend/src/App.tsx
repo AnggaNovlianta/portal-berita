@@ -16,10 +16,22 @@ import BackToTop from './BackToTop';
 import DarkModeToggle from './DarkModeToggle';
 
 const App: React.FC = () => {
-  // KUNCI PERBAIKAN: Membaca localStorage langsung ke dalam useState (Lazy Initialization)
-  // Cara ini menghilangkan render ganda dan tidak memerlukan useEffect sama sekali.
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return !!localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    // Pengecekan sederhana apakah token JWT belum kedaluwarsa (expired)
+    try {
+      // JWT terdiri dari 3 bagian, index [1] adalah payload base64
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem('token'); // Hapus token jika sudah expired
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false; // Token palsu/tidak dapat diparse akan ditolak
+    }
   });
 
   // Fungsi yang dipanggil saat login berhasil

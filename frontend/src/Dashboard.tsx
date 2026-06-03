@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NewsForm from './NewsForm';
 import { 
-  Menu, X, LogOut, FileText, CheckCircle, Trash2, Edit2, LayoutDashboard, Tags, Plus, Users, Key, Settings, Upload, User 
+  Menu, X, LogOut, FileText, CheckCircle, Trash2, Edit2, LayoutDashboard, Tags, Plus, Users, Key, Settings, Upload, User, ArrowLeft, Search 
 } from 'lucide-react';
 import api, { BASE_URL, getErrorMessage } from './api';
 
@@ -59,6 +59,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
+  const [postSearchTerm, setPostSearchTerm] = useState('');
   const navigate = useNavigate();
 
   const getAuthToken = useCallback((): string | null => {
@@ -72,6 +73,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<Post | null>(null);
+  const [showPostForm, setShowPostForm] = useState(false);
   const [categoryName, setCategoryName] = useState('');
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [userName, setUserName] = useState('');
@@ -97,9 +99,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [boardMembers, setBoardMembers] = useState<BoardMemberState[]>([]);
 
   // State untuk Iklan
-  const [adLinks, setAdLinks] = useState({ ad_leaderboard: '', ad_sidebar: '', ad_article_top: '', ad_article_bottom: '' });
-  const [adSlots, setAdSlots] = useState({ ad_leaderboard: '', ad_sidebar: '', ad_article_top: '', ad_article_bottom: '' });
-  const [adPreviews, setAdPreviews] = useState({ ad_leaderboard: null as string|null, ad_sidebar: null as string|null, ad_article_top: null as string|null, ad_article_bottom: null as string|null });
+  const [adLinks, setAdLinks] = useState({ ad_leaderboard: '', ad_sidebar: '', ad_article_top: '', ad_article_middle: '', ad_article_bottom: '' });
+  const [adSlots, setAdSlots] = useState({ ad_leaderboard: '', ad_sidebar: '', ad_article_top: '', ad_article_middle: '', ad_article_bottom: '' });
+  const [adPreviews, setAdPreviews] = useState({ ad_leaderboard: null as string|null, ad_sidebar: null as string|null, ad_article_top: null as string|null, ad_article_middle: null as string|null, ad_article_bottom: null as string|null });
   const [adFiles, setAdFiles] = useState<{ [key: string]: File }>({});
 
   // State untuk Pengaturan Email SMTP
@@ -171,18 +173,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         ad_leaderboard: settingsData.ad_leaderboard_link || '',
         ad_sidebar: settingsData.ad_sidebar_link || '',
         ad_article_top: settingsData.ad_article_top_link || '',
+        ad_article_middle: settingsData.ad_article_middle_link || '',
         ad_article_bottom: settingsData.ad_article_bottom_link || ''
       });
       setAdSlots({
         ad_leaderboard: settingsData.ad_leaderboard_slot || '',
         ad_sidebar: settingsData.ad_sidebar_slot || '',
         ad_article_top: settingsData.ad_article_top_slot || '',
+        ad_article_middle: settingsData.ad_article_middle_slot || '',
         ad_article_bottom: settingsData.ad_article_bottom_slot || ''
       });
       setAdPreviews({
         ad_leaderboard: settingsData.ad_leaderboard ? `${BASE_URL}${settingsData.ad_leaderboard}` : null,
         ad_sidebar: settingsData.ad_sidebar ? `${BASE_URL}${settingsData.ad_sidebar}` : null,
         ad_article_top: settingsData.ad_article_top ? `${BASE_URL}${settingsData.ad_article_top}` : null,
+        ad_article_middle: settingsData.ad_article_middle ? `${BASE_URL}${settingsData.ad_article_middle}` : null,
         ad_article_bottom: settingsData.ad_article_bottom ? `${BASE_URL}${settingsData.ad_article_bottom}` : null,
       });
 
@@ -219,6 +224,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       await refreshData();
       setEditingId(null);
       setEditingData(null);
+      setShowPostForm(false);
       alert(editingId ? 'Berita diperbarui!' : 'Berita diterbitkan!');
     } catch (error: unknown) {
       console.error(error);
@@ -406,10 +412,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     formData.append('ad_leaderboard_link', adLinks.ad_leaderboard);
     formData.append('ad_sidebar_link', adLinks.ad_sidebar);
     formData.append('ad_article_top_link', adLinks.ad_article_top);
+    formData.append('ad_article_middle_link', adLinks.ad_article_middle);
     formData.append('ad_article_bottom_link', adLinks.ad_article_bottom);
     formData.append('ad_leaderboard_slot', adSlots.ad_leaderboard);
     formData.append('ad_sidebar_slot', adSlots.ad_sidebar);
     formData.append('ad_article_top_slot', adSlots.ad_article_top);
+    formData.append('ad_article_middle_slot', adSlots.ad_article_middle);
     formData.append('ad_article_bottom_slot', adSlots.ad_article_bottom);
     formData.append('smtp_host', smtpHost);
     formData.append('smtp_port', smtpPort);
@@ -478,99 +486,183 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   if (loading) return <div className="flex h-screen items-center justify-center font-bold text-gray-500">Memuat CMS...</div>;
 
+  const filteredPosts = posts.filter(post => 
+    post.title.toLowerCase().includes(postSearchTerm.toLowerCase())
+  );
+
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans">
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white p-6 transition-transform md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <div className="flex min-h-screen bg-[#FDFDFD] font-sans">
+      {/* Backdrop saat menu mobile terbuka */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white p-6 transition-transform duration-300 md:translate-x-0 flex flex-col ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-lg font-black tracking-wider text-white">PUSTAKA<span className="text-blue-500">PUBLIK</span></h2>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-gray-400"><X /></button>
+          <h2 className="text-xl font-black tracking-tighter text-white">PUSTAKA<span className="text-blue-500">PUBLIK</span></h2>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
         </div>
-        <nav className="space-y-2">
-          <button onClick={() => { setActiveTab('posts'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'posts' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><LayoutDashboard size={20} /> Kelola Berita</button>
-          <button onClick={() => { setActiveTab('profile'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'profile' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><User size={20} /> Profil Saya</button>
+        <nav className="space-y-2 flex-1">
+          <button onClick={() => { setActiveTab('posts'); setShowPostForm(false); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'posts' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><LayoutDashboard size={20} /> Kelola Berita</button>
+          <button onClick={() => { setActiveTab('profile'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'profile' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><User size={20} /> Profil Saya</button>
           {userRole === 'Admin' && (
             <>
-              <button onClick={() => { setActiveTab('categories'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'categories' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Tags size={20} /> Kelola Kategori</button>
-              <button onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'users' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Users size={20} /> Kelola Pengguna</button>
-              <button onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'settings' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Settings size={20} /> Pengaturan</button>
+              <button onClick={() => { setActiveTab('categories'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'categories' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Tags size={20} /> Kelola Kategori</button>
+              <button onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Users size={20} /> Kelola Pengguna</button>
+              <button onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Settings size={20} /> Pengaturan</button>
             </>
           )}
-          <div className="pt-10"><button onClick={onLogout} className="flex items-center gap-3 px-4 w-full text-red-400 hover:text-red-300 font-bold transition-colors"><LogOut size={20} /> Keluar Sistem</button></div>
         </nav>
+        <div className="pt-8 mt-auto border-t border-slate-800">
+          <button onClick={onLogout} className="flex items-center gap-3 px-4 w-full text-slate-400 hover:text-red-400 font-bold transition-colors"><LogOut size={20} /> Keluar Sistem</button>
+        </div>
       </aside>
 
-      <main className="flex-1 md:ml-64 p-6 md:p-10">
-        <header className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-black text-slate-800">{activeTab === 'posts' ? 'Ruang Redaksi' : activeTab === 'profile' ? 'Pengaturan Profil' : activeTab === 'categories' ? 'Manajemen Rubrik' : activeTab === 'users' ? 'Manajemen Pengguna' : 'Pengaturan Website'}</h1>
-          <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 bg-white rounded-lg shadow-sm border border-gray-100"><Menu /></button>
+      <main className="flex-1 md:ml-72 p-6 md:p-10 max-w-[1600px] mx-auto w-full">
+        <header className="flex justify-between items-start md:items-center mb-10">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+            {activeTab === 'posts' ? (showPostForm ? 'Editor Berita' : 'Ruang Redaksi') : 
+               activeTab === 'profile' ? 'Profil Saya' : 
+               activeTab === 'categories' ? 'Manajemen Rubrik' : 
+               activeTab === 'users' ? 'Manajemen Pengguna' : 'Pengaturan Website'}
+            </h1>
+            <p className="text-sm text-slate-500 font-medium mt-2 hidden md:block">
+             {activeTab === 'posts' ? (showPostForm ? 'Fokuslah menulis artikel yang berdampak besar.' : `Selamat datang kembali, ${profileName || 'Redaksi'}! Mari kelola konten Anda hari ini.`) : 
+                'Kelola preferensi dan pengaturan sistem Pustaka Publik Anda di sini.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
+               <div className="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-black text-sm">
+                 {profileName ? profileName.charAt(0).toUpperCase() : 'U'}
+               </div>
+               <div className="text-sm pr-2">
+                 <p className="font-bold text-slate-800 leading-none mb-1">{profileName || 'Pengguna'}</p>
+                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{userRole}</p>
+               </div>
+            </div>
+            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-3 bg-white text-slate-700 rounded-2xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors"><Menu size={24} /></button>
+          </div>
         </header>
 
         {activeTab === 'posts' && (
           <>
-            <div className={`grid grid-cols-1 gap-6 mb-8 ${userRole === 'Admin' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+          {!showPostForm ? (
+            <div>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10 ${userRole === 'Admin' ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}`}>
               {([
-                { label: 'Total Artikel', val: posts.length, icon: FileText, color: 'text-blue-600' },
-                { label: 'Telah Publik', val: posts.filter(p => p.published).length, icon: CheckCircle, color: 'text-green-600' },
-                { label: 'Total Kategori', val: categories.length, icon: Tags, color: 'text-purple-600' },
-                ...(userRole === 'Admin' ? [{ label: 'Total Pengguna', val: users.length, icon: Users, color: 'text-orange-600' }] : [])
+                { label: 'Total Artikel', val: posts.length, icon: FileText, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+                { label: 'Telah Publik', val: posts.filter(p => p.published).length, icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50' },
+                { label: 'Total Kategori', val: categories.length, icon: Tags, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+                ...(userRole === 'Admin' ? [{ label: 'Total Pengguna', val: users.length, icon: Users, color: 'text-orange-600', bgColor: 'bg-orange-50' }] : [])
               ]).map((stat, i) => (
-                <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex items-center justify-between group">
                   <div>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">{stat.label}</p>
-                    <p className="text-3xl font-black text-slate-800">{stat.val}</p>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-2">{stat.label}</p>
+                    <p className="text-4xl font-black text-slate-800">{stat.val}</p>
                   </div>
-                  <stat.icon className={`${stat.color} w-8 h-8 opacity-80`} />
+                  <div className={`p-4 rounded-2xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-300`}>
+                    <stat.icon className={`${stat.color} w-8 h-8`} strokeWidth={2} />
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1">
-                <NewsForm key={editingId || 'new_post'} userRole={userRole} initialData={editingData ? { title: editingData.title, slug: editingData.slug, content: editingData.content, categoryId: editingData.categoryId, thumbnail: editingData.thumbnail ? `${BASE_URL}${editingData.thumbnail}` : undefined } : undefined} onSubmit={handleFormSubmit} />
+              <div className="flex justify-between items-end md:items-center mb-6 flex-col lg:flex-row gap-4">
+                <h2 className="text-xl font-black text-slate-800 w-full lg:w-auto">Daftar Artikel Publikasi</h2>
+                <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
+                  <div className="relative w-full sm:w-72">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Search size={18} className="text-slate-400" />
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="Cari judul berita..." 
+                      value={postSearchTerm}
+                      onChange={(e) => setPostSearchTerm(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all shadow-sm"
+                    />
+                  </div>
+                  <button onClick={() => { setShowPostForm(true); setEditingId(null); setEditingData(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg hover:shadow-blue-600/30 hover:-translate-y-0.5 w-full sm:w-auto whitespace-nowrap">
+                    <Plus size={20} /> Tulis Berita Baru
+                  </button>
+                </div>
               </div>
-              <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-fit">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-bold">
-                    <tr><th className="p-4 pl-6">Artikel</th><th className="p-4 text-center">Status</th><th className="p-4 text-right">Aksi</th></tr>
+
+              <div className="w-full bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden h-fit">
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left whitespace-nowrap">
+                  <thead className="bg-slate-50/80 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-slate-100">
+                    <tr><th className="p-5 pl-6">Informasi Artikel</th><th className="p-5 text-center">Status</th><th className="p-5 text-right pr-6">Aksi</th></tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {posts.map((item) => (
-                      <tr key={item.id}>
-                        <td className="p-4 pl-6 font-bold text-slate-800">{item.title}</td>
-                        <td className="p-4 text-center">
+                  <tbody className="divide-y divide-slate-100/80">
+                    {filteredPosts.length > 0 ? filteredPosts.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="p-4 pl-6 whitespace-normal min-w-[250px]">
+                          <div className="font-bold text-slate-800 text-base mb-1.5 leading-snug">{item.title}</div>
+                          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                             <span className="text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">{categories.find(c => c.id.toString() === item.categoryId?.toString())?.name || 'Kategori'}</span>
+                             <span>•</span>
+                             <span>{new Date(item.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center align-middle">
                           {item.published ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 shadow-sm">
                               <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> PUBLIK
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shadow-sm">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> DRAF
                             </span>
                           )}
                         </td>
-                        <td className="p-4 text-right">
                           {userRole === 'Jurnalis' && (item.authorId !== userId || item.published) ? (
-                            <span className="text-[10px] text-gray-400 font-bold bg-gray-100 px-2 py-1 rounded">Terkunci</span>
+                          <td className="p-4 text-right pr-6 align-middle">
+                            <span className="text-[10px] text-gray-400 font-bold bg-gray-100 px-3 py-1.5 rounded-full">Terkunci</span>
+                          </td>
                           ) : (
-                            <>
-                              <button onClick={() => { setEditingId(item.id); setEditingData(item); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16} /></button>
-                              <button onClick={() => handleDeletePost(item.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
-                            </>
+                          <td className="p-4 text-right pr-6 align-middle">
+                            <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => { setEditingId(item.id); setEditingData(item); setShowPostForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-xl transition-colors" title="Edit Artikel"><Edit2 size={18} /></button>
+                              <button onClick={() => handleDeletePost(item.id)} className="p-2 text-red-500 hover:bg-red-100 hover:text-red-700 rounded-xl transition-colors" title="Hapus Artikel"><Trash2 size={18} /></button>
+                            </div>
+                          </td>
                           )}
-                        </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan={3} className="p-8 text-center text-slate-400 font-bold">{postSearchTerm ? 'Artikel tidak ditemukan.' : 'Belum ada artikel yang dipublikasikan.'}</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
+          ) : (
+            <div>
+              <div className="mb-6 flex">
+                <button onClick={() => { setShowPostForm(false); setEditingId(null); setEditingData(null); }} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold bg-white border border-slate-200 px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-x-1">
+                  <ArrowLeft size={18} /> Kembali ke Daftar
+                </button>
+              </div>
+              <div className="w-full">
+                <NewsForm key={editingId || 'new_post'} userRole={userRole} initialData={editingData ? { title: editingData.title, slug: editingData.slug, content: editingData.content, categoryId: editingData.categoryId, thumbnail: editingData.thumbnail ? `${BASE_URL}${editingData.thumbnail}` : undefined } : undefined} onSubmit={handleFormSubmit} />
+              </div>
+            </div>
+          )}
           </>
         )}
 
         {activeTab === 'profile' && (
           <div className="max-w-2xl mx-auto grid grid-cols-1 gap-10">
             {/* Form Ubah Profil */}
-            <form onSubmit={handleProfileUpdate} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl space-y-6">
+            <form onSubmit={handleProfileUpdate} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h2 className="text-xl font-black text-slate-800 mb-2">Profil Pengguna</h2>
               <div>
                 <label className="block text-sm font-bold text-gray-600 mb-2">Nama Lengkap</label>
@@ -596,7 +688,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             </form>
 
             {/* Form Ubah Password */}
-            <form onSubmit={handlePasswordChange} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl space-y-6">
+            <form onSubmit={handlePasswordChange} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h2 className="text-xl font-black text-slate-800 mb-2">Ubah Kata Sandi</h2>
               <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full p-4 bg-gray-50 border rounded-xl font-bold" placeholder="Kata Sandi Saat Ini" required autoComplete="current-password" />
               <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-4 bg-gray-50 border rounded-xl font-bold" placeholder="Kata Sandi Baru (Min. 6 Karakter)" required minLength={6} autoComplete="new-password" />
@@ -609,29 +701,33 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         {activeTab === 'categories' && userRole === 'Admin' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
-              <form onSubmit={handleCategorySubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl">
+              <form onSubmit={handleCategorySubmit} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">{editingCategoryId ? 'Edit Kategori' : <><Plus size={20} /> Tambah Rubrik</>}</h2>
                 <input type="text" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className="w-full p-4 bg-gray-50 border rounded-xl mb-4 font-bold" placeholder="Nama Kategori" required />
                 <button type="submit" className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl">{editingCategoryId ? 'Simpan' : 'Tambahkan'}</button>
               </form>
             </div>
-            <div className="lg:col-span-2 bg-white rounded-3xl border shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-bold">
-                  <tr><th className="p-4">Nama Rubrik</th><th className="p-4 text-right">Aksi</th></tr>
+            <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden h-fit">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left whitespace-nowrap">
+                <thead className="bg-slate-50/80 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-slate-100">
+                  <tr><th className="p-5 pl-6">Nama Rubrik</th><th className="p-5 text-right pr-6">Aksi</th></tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-slate-100/80">
                   {categories.map((cat) => (
-                    <tr key={cat.id}>
-                      <td className="p-4 font-bold">{cat.name}</td>
-                      <td className="p-4 text-right">
-                        <button onClick={() => { setEditingCategoryId(cat.id); setCategoryName(cat.name); }} className="p-2 text-blue-600"><Edit2 size={16} /></button>
-                        <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500"><Trash2 size={16} /></button>
+                    <tr key={cat.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="p-4 pl-6 font-bold text-slate-800">{cat.name}</td>
+                      <td className="p-4 text-right pr-6 align-middle">
+                        <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { setEditingCategoryId(cat.id); setCategoryName(cat.name); }} className="p-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-xl transition-colors" title="Edit Kategori"><Edit2 size={18} /></button>
+                          <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500 hover:bg-red-100 hover:text-red-700 rounded-xl transition-colors" title="Hapus Kategori"><Trash2 size={18} /></button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -639,7 +735,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         {activeTab === 'users' && userRole === 'Admin' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
-              <form onSubmit={handleUserSubmit} autoComplete="off" className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl">
+              <form onSubmit={handleUserSubmit} autoComplete="off" className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Plus size={20} /> Tambah Pengguna</h2>
                 <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} autoComplete="off" className="w-full p-4 bg-gray-50 border rounded-xl mb-4 font-bold" placeholder="Nama Lengkap" required />
                 <input type="email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} autoComplete="off" className="w-full p-4 bg-gray-50 border rounded-xl mb-4 font-bold" placeholder="Alamat Email" required />
@@ -652,58 +748,62 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 <button type="submit" className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl">Tambahkan</button>
               </form>
             </div>
-            <div className="lg:col-span-2 bg-white rounded-3xl border shadow-sm overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-bold">
-                  <tr><th className="p-4 pl-6">Nama & Email</th><th className="p-4 text-center">Peran</th><th className="p-4 text-right">Aksi</th></tr>
+            <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden h-fit">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left whitespace-nowrap">
+                <thead className="bg-slate-50/80 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-slate-100">
+                  <tr><th className="p-5 pl-6">Nama & Email</th><th className="p-5 text-center">Peran</th><th className="p-5 text-right pr-6">Aksi</th></tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-slate-100/80">
                   {users.map((user) => (
-                    <tr key={user.id}>
+                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="p-4 pl-6">
                         <div className="font-bold text-slate-800">{user.name}</div>
                         <div className="text-xs text-gray-500">{user.email}</div>
                       </td>
-                      <td className="p-4 text-center font-bold text-slate-600">
+                      <td className="p-4 text-center font-bold text-slate-600 align-middle">
                         {user.id !== userId ? (
                           <select
                             value={user.role?.name || 'Jurnalis'}
                             onChange={(e) => handleUpdateUserRole(user.id, e.target.value)}
-                            className="px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer hover:bg-slate-50 transition-colors shadow-sm"
                           >
                             <option value="Jurnalis">Jurnalis</option>
                             <option value="Redaktur">Redaktur</option>
                             <option value="Admin">Administrator</option>
                           </select>
                         ) : (
-                          <span>{user.role?.name || 'Jurnalis'}</span>
+                          <span className="px-3 py-1.5 inline-block">{user.role?.name || 'Jurnalis'}</span>
                         )}
                         <div className="mt-1">
                           {user.isApproved ? (
-                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Aktif</span>
+                            <span className="text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full border border-green-200 inline-block font-bold">Aktif</span>
                           ) : (
-                            <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 animate-pulse">Menunggu</span>
+                            <span className="text-[10px] bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full border border-amber-200 inline-block animate-pulse font-bold">Menunggu</span>
                           )}
                         </div>
                       </td>
-                      <td className="p-4 text-right">
-                        {!user.isApproved && (
-                          <button onClick={() => handleApproveUser(user.id, user.name)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg mr-2" title="Setujui Pengguna"><CheckCircle size={16} /></button>
-                        )}
-                        <button onClick={() => handleResetPassword(user.id, user.name)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg mr-2" title="Reset Kata Sandi"><Key size={16} /></button>
-                        <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                      <td className="p-4 text-right pr-6 align-middle">
+                        <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                          {!user.isApproved && (
+                            <button onClick={() => handleApproveUser(user.id, user.name)} className="p-2 text-green-600 hover:bg-green-100 hover:text-green-700 rounded-xl transition-colors" title="Setujui Pengguna"><CheckCircle size={18} /></button>
+                          )}
+                          <button onClick={() => handleResetPassword(user.id, user.name)} className="p-2 text-blue-500 hover:bg-blue-100 hover:text-blue-700 rounded-xl transition-colors" title="Reset Kata Sandi"><Key size={18} /></button>
+                          <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-red-500 hover:bg-red-100 hover:text-red-700 rounded-xl transition-colors" title="Hapus Pengguna"><Trash2 size={18} /></button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
 
         {activeTab === 'settings' && userRole === 'Admin' && (
           <div className="max-w-2xl mx-auto">
-            <form onSubmit={handleSettingsSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl space-y-6">
+            <form onSubmit={handleSettingsSubmit} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h2 className="text-xl font-black text-slate-800 mb-2">Pengaturan Umum</h2>
               
               <div>
@@ -825,6 +925,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                   { id: 'ad_leaderboard', label: 'Leaderboard (Atas Beranda)' },
                   { id: 'ad_sidebar', label: 'Sidebar (Samping Kanan)' },
                   { id: 'ad_article_top', label: 'Banner (Atas Artikel)' },
+                  { id: 'ad_article_middle', label: 'Banner (Tengah Artikel)' },
                   { id: 'ad_article_bottom', label: 'Banner (Bawah Artikel)' },
                 ].map(ad => (
                   <div key={ad.id} className="p-4 border border-gray-200 rounded-xl bg-gray-50 flex flex-col gap-4">

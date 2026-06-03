@@ -121,6 +121,22 @@ const PostDetail: React.FC = () => {
     alert('Tautan berita berhasil disalin!');
   };
 
+  // Fungsi untuk memecah konten HTML menjadi potongan (chunks) per 3 paragraf
+  const splitContent = (htmlContent: string) => {
+    const paragraphs = htmlContent.split(/<\/p>/i).filter(p => p.trim() !== '');
+    const chunks: string[] = [];
+    
+    // Loop dengan kelipatan 3
+    for (let i = 0; i < paragraphs.length; i += 3) {
+      const chunk = paragraphs.slice(i, i + 3).join('</p>') + '</p>';
+      chunks.push(chunk);
+    }
+    
+    return chunks;
+  };
+
+  const contentChunks = splitContent(post.content);
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900">
       {/* Reading Progress Bar (Bilah Indikator Membaca) */}
@@ -147,91 +163,129 @@ const PostDetail: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-6 pb-20">
         <article className="w-full">
-          <div className="mb-6">
+          <div className="mb-6 flex justify-center md:justify-start">
             {post.category ? (
-              <Link to={`/kategori/${post.category.slug}`} className="inline-block text-[11px] font-black uppercase tracking-[0.2em] text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-1.5 rounded-full border border-blue-100 transition-colors">
+              <Link to={`/kategori/${post.category.slug}`} className="inline-block text-xs font-black uppercase tracking-widest text-blue-700 bg-blue-50 hover:bg-blue-100 px-5 py-2 rounded-full border border-blue-100 transition-colors shadow-sm">
                 {post.category.name}
               </Link>
             ) : (
-              <span className="inline-block text-[11px] font-black uppercase tracking-[0.2em] text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
+              <span className="inline-block text-xs font-black uppercase tracking-widest text-blue-700 bg-blue-50 px-5 py-2 rounded-full border border-blue-100 shadow-sm">
                 Berita Umum
               </span>
             )}
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-black leading-tight mb-8 break-words">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.1] md:leading-[1.15] mb-8 break-words text-center md:text-left tracking-tight">
             {post.title}
           </h1>
 
-          <div className="flex items-center gap-6 text-slate-400 text-sm mb-10 border-b border-slate-100 pb-8">
-             <div className="flex items-center gap-2 font-medium text-slate-600">
-                <User size={18} /> Oleh: <span className="font-bold">{post.author?.name || 'Tim Redaksi'}</span>
-             </div>
-             <div className="flex items-center gap-2 font-medium">
-                <Calendar size={18} /> {new Date(post.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-             </div>
-             <div className="flex items-center gap-2 font-medium">
-                <Clock size={18} /> {readingTime} Menit Baca
-             </div>
-             <div className="flex items-center gap-2 font-bold text-blue-600">
-                <Eye size={18} /> {post.views} Tayangan
-             </div>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-slate-500 text-sm mb-10 border-y border-slate-100 py-5">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                  <User size={18} className="text-slate-400" />
+               </div>
+               <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none mb-1">Ditulis oleh</p>
+                  <p className="font-bold text-slate-700 leading-none">{post.author?.name || 'Tim Redaksi'}</p>
+               </div>
+            </div>
+            <span className="text-slate-300 hidden md:block text-lg font-light">/</span>
+            <div className="flex items-center gap-2 font-medium">
+               <Calendar size={16} /> {new Date(post.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+            <span className="text-slate-300 hidden md:block text-lg font-light">/</span>
+            <div className="flex items-center gap-2 font-medium">
+               <Clock size={16} /> {readingTime} Menit Baca
+            </div>
+            <span className="text-slate-300 hidden md:block text-lg font-light">/</span>
+            <div className="flex items-center gap-2 font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full">
+               <Eye size={16} /> {post.views} Tayangan
+            </div>
           </div>
 
           {imageUrl && (
-            <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden mb-10 shadow-lg bg-slate-100">
-              <img src={imageUrl} alt={post.title} loading="lazy" className="w-full h-full object-cover" />
-            </div>
+            <figure className="mb-12">
+              <div className="w-full aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] bg-slate-100 group relative">
+                <img src={imageUrl} alt={post.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-3xl pointer-events-none"></div>
+              </div>
+              <figcaption className="text-center text-sm text-slate-400 mt-4 italic px-4">
+                Ilustrasi: {post.title}
+              </figcaption>
+            </figure>
           )}
 
           {/* Slot Iklan Bawah Judul / Atas Artikel */}
           <AdSlot adKey="ad_article_top" height="90px" text="Space Iklan Banner Artikel Atas" className="mb-10" />
 
-          <div 
-            className="prose prose-slate prose-lg max-w-none w-full 
-                       prose-headings:font-black prose-a:text-blue-600 
-                       prose-img:rounded-2xl prose-img:shadow-lg prose-img:max-w-full
-                       prose-table:block prose-table:overflow-x-auto
-                       break-words overflow-hidden dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: post.content }} 
-          />
+          {/* Loop melalui setiap potongan konten paragraf */}
+          {contentChunks.map((chunk, index) => (
+            <React.Fragment key={index}>
+              <div 
+                className={`prose prose-slate prose-lg md:prose-xl prose-p:leading-relaxed max-w-none w-full 
+                           prose-headings:font-black prose-a:text-blue-600 prose-a:decoration-blue-300 prose-a:underline-offset-4 hover:prose-a:decoration-blue-600
+                           prose-img:rounded-3xl prose-img:shadow-xl prose-img:max-w-full
+                           prose-table:block prose-table:overflow-x-auto
+                           break-words overflow-hidden dark:prose-invert ${index > 0 ? 'mt-8' : ''}`}
+                dangerouslySetInnerHTML={{ __html: chunk }} 
+              />
+              
+              {/* Tampilkan iklan setelah setiap chunk KECUALI chunk yang terakhir */}
+              {index < contentChunks.length - 1 && (
+                <AdSlot adKey="ad_article_middle" height="90px" text={`Space Iklan Tengah Paragraf ${index * 3 + 3}`} className="my-10" />
+              )}
+            </React.Fragment>
+          ))}
 
           {/* Slot Iklan Akhir Artikel */}
           <AdSlot adKey="ad_article_bottom" height="90px" text="Space Iklan Banner Artikel Bawah" className="mt-12" />
 
           {/* Tombol Bagikan (User Engagement) */}
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between py-6 border-y border-slate-100 gap-4">
-            <span className="font-bold text-slate-600 flex items-center gap-2"><Share2 size={20}/> Bagikan berita ini:</span>
-            <div className="flex gap-3">
-              <button onClick={shareToWhatsApp} className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-bold hover:bg-green-600 transition-colors">WhatsApp</button>
-              <button onClick={shareToFacebook} className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors">Facebook</button>
-              <button onClick={shareToTwitter} className="px-4 py-2 bg-slate-800 text-white rounded-full text-sm font-bold hover:bg-slate-900 transition-colors">X / Twitter</button>
-              <button onClick={copyLink} className="p-2 bg-gray-100 text-slate-600 rounded-full hover:bg-gray-200 transition-colors" title="Salin Tautan"><Link2 size={20} /></button>
+          <div className="mt-16 flex flex-col md:flex-row items-center justify-between py-8 px-8 bg-slate-50/80 rounded-3xl border border-slate-100 gap-6 shadow-sm">
+            <div className="text-center md:text-left">
+               <h3 className="font-black text-slate-800 text-xl mb-1 flex items-center justify-center md:justify-start gap-2"><Share2 size={20} className="text-blue-600"/> Bagikan Artikel</h3>
+               <p className="text-sm text-slate-500 font-medium">Bantu sebarluaskan informasi yang bermanfaat ke teman Anda.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button onClick={shareToWhatsApp} className="flex items-center gap-2 px-5 py-3 bg-[#25D366] text-white rounded-xl text-sm font-bold hover:bg-[#20bd5a] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">WhatsApp</button>
+              <button onClick={shareToFacebook} className="flex items-center gap-2 px-5 py-3 bg-[#1877F2] text-white rounded-xl text-sm font-bold hover:bg-[#166fe5] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">Facebook</button>
+              <button onClick={shareToTwitter} className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">X / Twitter</button>
+              <button onClick={copyLink} className="flex items-center gap-2 p-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5" title="Salin Tautan"><Link2 size={20} /></button>
             </div>
           </div>
 
           {/* Zona Komentar Pengguna (Placeholder/Integrasi Siap Pakai) */}
-          <div className="mt-8 bg-slate-50 p-8 rounded-2xl border border-slate-100 text-center">
-            <MessageCircle size={40} className="mx-auto text-slate-300 mb-3" />
-            <h3 className="text-lg font-black text-slate-800 mb-2">Kolom Komentar</h3>
-            <p className="text-slate-500 text-sm">Masuk untuk memberikan komentar. <i>(Fitur komentar sedang dalam pengembangan backend / dapat diintegrasikan dengan Plugin Disqus)</i></p>
+          <div className="mt-8 bg-slate-50/50 p-10 rounded-3xl border border-slate-100 text-center shadow-sm">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
+               <MessageCircle size={32} className="text-slate-300" />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 mb-2">Punya Pendapat?</h3>
+            <p className="text-slate-500 text-sm max-w-md mx-auto">
+               Masuk atau daftar untuk ikut berdiskusi dan memberikan komentar pada artikel ini.
+               <br/><i className="text-xs text-slate-400 mt-2 block">(Fitur komentar dalam tahap pengembangan)</i>
+            </p>
           </div>
 
           {/* Bagian Berita Terkait */}
           {relatedPosts.length > 0 && (
-            <div className="mt-16 pt-10 border-t border-slate-100">
-              <h3 className="text-2xl font-black mb-6">Mungkin Anda Suka</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="mt-16 pt-12 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Baca Juga</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
                 {relatedPosts.map(rp => (
-                  <Link to={`/berita/${rp.slug}`} key={rp.id} className="group block">
-                    <div className="w-full aspect-video rounded-xl overflow-hidden bg-slate-100 mb-3 relative">
+                  <Link to={`/berita/${rp.slug}`} key={rp.id} className="group flex flex-col bg-white border border-slate-100 rounded-3xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1">
+                    <div className="w-full aspect-[4/3] bg-slate-100 relative overflow-hidden">
                       {rp.thumbnail ? (
-                        <img src={`${BASE_URL}${rp.thumbnail}`} alt={rp.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={`${BASE_URL}${rp.thumbnail}`} alt={rp.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">Tanpa Gambar</div>
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-medium">Tanpa Gambar</div>
                       )}
+                      <div className="absolute inset-0 ring-1 ring-inset ring-black/5 pointer-events-none"></div>
                     </div>
-                    <h4 className="font-bold text-slate-800 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">{rp.title}</h4>
+                    <div className="p-6 flex flex-col flex-1">
+                      <h4 className="font-bold text-slate-800 text-lg leading-snug group-hover:text-blue-600 transition-colors line-clamp-3">{rp.title}</h4>
+                    </div>
                   </Link>
                 ))}
               </div>

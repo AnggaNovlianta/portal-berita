@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../middlewares/authMiddleware';
+import { isValidEmail, isMinLength, isNonEmptyString } from '../utils/validation';
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -46,8 +47,8 @@ export const updateCurrentUserProfile = async (req: AuthRequest, res: Response):
       return;
     }
 
-    if (!name || !email) {
-      res.status(400).json({ message: 'Nama dan email wajib diisi.' });
+    if (!isNonEmptyString(name) || !isValidEmail(email)) {
+      res.status(400).json({ message: 'Nama wajib diisi dan email harus valid.' });
       return;
     }
 
@@ -72,8 +73,8 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
   try {
     const { name, email, password, roleName = 'Jurnalis' } = req.body;
 
-    if (!name || !email || !password) {
-      res.status(400).json({ message: 'Nama, email, dan password wajib diisi!' });
+    if (!isNonEmptyString(name) || !isValidEmail(email) || !isMinLength(password, 6)) {
+      res.status(400).json({ message: 'Nama wajib diisi, email harus valid, dan password minimal 6 karakter.' });
       return;
     }
 
@@ -147,8 +148,8 @@ export const changeCurrentUserPassword = async (req: AuthRequest, res: Response)
       return;
     }
 
-    if (!currentPassword || !newPassword || newPassword.length < 6) {
-      res.status(400).json({ message: 'Kata sandi saat ini dan kata sandi baru (minimal 6 karakter) wajib diisi.' });
+    if (!isNonEmptyString(currentPassword) || !isMinLength(newPassword, 6)) {
+      res.status(400).json({ message: 'Kata sandi saat ini wajib diisi dan kata sandi baru minimal 6 karakter.' });
       return;
     }
 
@@ -177,7 +178,7 @@ export const resetPassword = async (req: Request<{ id: string }>, res: Response)
     const { id } = req.params;
     const { newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 6) {
+    if (!isMinLength(newPassword, 6)) {
       res.status(400).json({ message: 'Kata sandi baru minimal 6 karakter!' });
       return;
     }
@@ -201,7 +202,7 @@ export const updateUserRole = async (req: Request<{ id: string }>, res: Response
     const { id } = req.params;
     const { roleName } = req.body;
 
-    if (!roleName) {
+    if (!isNonEmptyString(roleName)) {
       res.status(400).json({ message: 'Role baru wajib diisi.' });
       return;
     }

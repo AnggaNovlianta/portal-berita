@@ -24,7 +24,7 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
-      <div className="bg-white p-10 rounded-2xl shadow-xl border-t-4 border-navy-primary w-full max-w-md">
+      <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-xl border-t-4 border-navy-primary w-full max-w-md">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-black text-navy-primary tracking-tight">Lupa Kata Sandi?</h2>
           <p className="text-sm text-gray-500 mt-2 font-medium">Masukkan email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi.</p>
