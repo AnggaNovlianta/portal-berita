@@ -26,7 +26,7 @@ exports.getCategories = getCategories;
 const createCategory = async (req, res) => {
     try {
         const { name } = req.body; // Frontend cukup mengirimkan 'name' saja
-        if (!name) {
+        if (typeof name !== 'string' || name.trim().length === 0) {
             res.status(400).json({ message: 'Nama kategori tidak boleh kosong!' });
             return;
         }
@@ -60,8 +60,12 @@ exports.createCategory = createCategory;
 const updateCategory = async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        if (Number.isNaN(id)) {
+            res.status(400).json({ message: 'ID kategori tidak valid.' });
+            return;
+        }
         const { name } = req.body;
-        if (!name) {
+        if (typeof name !== 'string' || name.trim().length === 0) {
             res.status(400).json({ message: 'Nama kategori tidak boleh kosong!' });
             return;
         }

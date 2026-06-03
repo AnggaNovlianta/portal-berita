@@ -8,6 +8,7 @@ const prisma_1 = __importDefault(require("../utils/prisma"));
 const sharp_1 = __importDefault(require("sharp"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const validation_1 = require("../utils/validation");
 // Fungsi bantuan untuk memproses dan menyimpan gambar dinamis
 const processAndSaveImage = async (fileBuffer, prefix, width) => {
     const uploadDir = path_1.default.join(__dirname, '../../uploads');
@@ -39,7 +40,32 @@ exports.getSettings = getSettings;
 // 2. POST: Memperbarui pengaturan
 const updateSettings = async (req, res) => {
     try {
-        const { site_name, site_motto, company_address, company_phone, company_email, social_facebook, social_twitter, social_instagram, social_youtube, ad_leaderboard_link, ad_sidebar_link, ad_article_top_link, ad_article_bottom_link, ad_leaderboard_slot, ad_sidebar_slot, ad_article_top_slot, ad_article_bottom_slot, smtp_host, smtp_port, smtp_user, smtp_pass, editorial_board } = req.body;
+        const { site_name, site_motto, company_address, company_phone, company_email, social_facebook, social_twitter, social_instagram, social_youtube, ad_leaderboard_link, ad_sidebar_link, ad_article_top_link, ad_article_middle_link, ad_article_bottom_link, ad_leaderboard_slot, ad_sidebar_slot, ad_article_top_slot, ad_article_middle_slot, ad_article_bottom_slot, smtp_host, smtp_port, smtp_user, smtp_pass, editorial_board } = req.body;
+        if (company_email && !(0, validation_1.isValidEmail)(company_email)) {
+            res.status(400).json({ message: 'Email perusahaan tidak valid.' });
+            return;
+        }
+        if (smtp_port && !(0, validation_1.isPositiveInteger)(smtp_port)) {
+            res.status(400).json({ message: 'SMTP port harus berupa angka positif.' });
+            return;
+        }
+        const urlFields = [
+            social_facebook,
+            social_twitter,
+            social_instagram,
+            social_youtube,
+            ad_leaderboard_link,
+            ad_sidebar_link,
+            ad_article_top_link,
+            ad_article_middle_link,
+            ad_article_bottom_link,
+        ];
+        for (const urlField of urlFields) {
+            if (urlField && !(0, validation_1.isValidUrl)(urlField)) {
+                res.status(400).json({ message: 'Semua tautan URL harus valid dan dimulai dengan http:// atau https://.' });
+                return;
+            }
+        }
         const settingsToUpdate = [
             { key: 'site_name', value: site_name },
             { key: 'site_motto', value: site_motto },
@@ -53,10 +79,12 @@ const updateSettings = async (req, res) => {
             { key: 'ad_leaderboard_link', value: ad_leaderboard_link },
             { key: 'ad_sidebar_link', value: ad_sidebar_link },
             { key: 'ad_article_top_link', value: ad_article_top_link },
+            { key: 'ad_article_middle_link', value: ad_article_middle_link },
             { key: 'ad_article_bottom_link', value: ad_article_bottom_link },
             { key: 'ad_leaderboard_slot', value: ad_leaderboard_slot },
             { key: 'ad_sidebar_slot', value: ad_sidebar_slot },
             { key: 'ad_article_top_slot', value: ad_article_top_slot },
+            { key: 'ad_article_middle_slot', value: ad_article_middle_slot },
             { key: 'ad_article_bottom_slot', value: ad_article_bottom_slot },
             { key: 'smtp_host', value: smtp_host },
             { key: 'smtp_port', value: smtp_port },
@@ -78,24 +106,59 @@ const updateSettings = async (req, res) => {
         // Deteksi apakah file tersebut adalah Logo Web atau Wajah Redaksi
         if (files && Array.isArray(files)) {
             for (const file of files) {
+                if (!file.fieldname || typeof file.fieldname !== 'string') {
+                    res.status(400).json({ message: 'Field file tidak valid.' });
+                    return;
+                }
+                if (!file.mimetype.startsWith('image/')) {
+                    res.status(400).json({ message: 'Hanya file gambar yang diizinkan untuk upload pengaturan.' });
+                    return;
+                }
+                if (file.size > 2 * 1024 * 1024) {
+                    res.status(400).json({ message: 'Ukuran file maksimal 2MB.' });
+                    return;
+                }
+                const boardPhotoMatch = file.fieldname.match(/^board_photo_(.+)$/);
                 if (file.fieldname === 'site_logo') {
                     siteLogoPath = await processAndSaveImage(file.buffer, 'logo', 200);
                 }
-                else if (file.fieldname.startsWith('board_photo_')) {
-                    const id = file.fieldname.split('_')[2];
+                else if (boardPhotoMatch) {
+                    const id = boardPhotoMatch[1];
+                    if (!id) {
+                        res.status(400).json({ message: 'Nama file foto redaksi tidak valid.' });
+                        return;
+                    }
                     boardPhotoPaths[id] = await processAndSaveImage(file.buffer, 'board', 400);
                 }
                 else if (file.fieldname.startsWith('ad_')) {
                     const adPath = await processAndSaveImage(file.buffer, file.fieldname, 800);
+                    // Hapus gambar iklan lama jika ada
+                    const oldAdSetting = await prisma_1.default.setting.findUnique({ where: { key: file.fieldname } });
+                    if (oldAdSetting?.value) {
+                        const oldImagePath = path_1.default.join(__dirname, '../..', oldAdSetting.value);
+                        if (fs_1.default.existsSync(oldImagePath))
+                            await fs_1.default.promises.unlink(oldImagePath).catch(() => { });
+                    }
                     await prisma_1.default.setting.upsert({
                         where: { key: file.fieldname },
                         update: { value: adPath },
                         create: { key: file.fieldname, value: adPath },
                     });
                 }
+                else {
+                    res.status(400).json({ message: `Field file tidak valid: ${file.fieldname}` });
+                    return;
+                }
             }
         }
         if (siteLogoPath) {
+            // Hapus logo lama jika ada
+            const oldLogoSetting = await prisma_1.default.setting.findUnique({ where: { key: 'site_logo' } });
+            if (oldLogoSetting?.value) {
+                const oldImagePath = path_1.default.join(__dirname, '../..', oldLogoSetting.value);
+                if (fs_1.default.existsSync(oldImagePath))
+                    await fs_1.default.promises.unlink(oldImagePath).catch(() => { });
+            }
             await prisma_1.default.setting.upsert({
                 where: { key: 'site_logo' },
                 update: { value: siteLogoPath },
@@ -104,16 +167,52 @@ const updateSettings = async (req, res) => {
         }
         // Menggabungkan data teks redaksi dengan tautan gambar yang baru disimpan
         if (editorial_board) {
-            let parsedBoard = JSON.parse(editorial_board);
-            parsedBoard = parsedBoard.map((member) => {
-                if (boardPhotoPaths[member.id])
+            let parsedBoard;
+            try {
+                parsedBoard = JSON.parse(editorial_board);
+            }
+            catch {
+                res.status(400).json({ message: 'editorial_board harus berupa JSON yang valid.' });
+                return;
+            }
+            if (!Array.isArray(parsedBoard)) {
+                res.status(400).json({ message: 'editorial_board harus berupa array JSON.' });
+                return;
+            }
+            // Ambil data susunan redaksi lama untuk mengecek foto yang perlu dihapus
+            const oldBoardSetting = await prisma_1.default.setting.findUnique({ where: { key: 'editorial_board' } });
+            let oldBoard = [];
+            if (oldBoardSetting?.value) {
+                try {
+                    oldBoard = JSON.parse(oldBoardSetting.value);
+                }
+                catch { }
+            }
+            const updatedBoard = parsedBoard.map((member) => {
+                if (boardPhotoPaths[member.id]) {
+                    const oldMember = oldBoard.find(m => m.id === member.id);
+                    if (oldMember?.photo) {
+                        const oldImagePath = path_1.default.join(__dirname, '../..', oldMember.photo);
+                        if (fs_1.default.existsSync(oldImagePath))
+                            fs_1.default.promises.unlink(oldImagePath).catch(() => { });
+                    }
                     member.photo = boardPhotoPaths[member.id];
+                }
                 return member;
             });
+            // Hapus foto dari anggota redaksi yang telah dihapus dari daftar
+            for (const oldMember of oldBoard) {
+                const stillExists = parsedBoard.find((m) => m.id === oldMember.id);
+                if (!stillExists && oldMember.photo) {
+                    const oldImagePath = path_1.default.join(__dirname, '../..', oldMember.photo);
+                    if (fs_1.default.existsSync(oldImagePath))
+                        fs_1.default.promises.unlink(oldImagePath).catch(() => { });
+                }
+            }
             await prisma_1.default.setting.upsert({
                 where: { key: 'editorial_board' },
-                update: { value: JSON.stringify(parsedBoard) },
-                create: { key: 'editorial_board', value: JSON.stringify(parsedBoard) },
+                update: { value: JSON.stringify(updatedBoard) },
+                create: { key: 'editorial_board', value: JSON.stringify(updatedBoard) },
             });
         }
         res.json({ message: 'Pengaturan berhasil diperbarui.' });

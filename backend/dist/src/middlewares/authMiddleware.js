@@ -15,6 +15,11 @@ const verifyToken = (req, res, next) => {
         res.status(401).json({ message: 'Akses ditolak! Token keamanan tidak ditemukan.' });
         return;
     }
+    if (!process.env.JWT_SECRET) {
+        console.error("🔥 [ERROR]: JWT_SECRET tidak terdefinisi pada environment variables.");
+        res.status(500).json({ message: 'Terjadi kesalahan konfigurasi server (Internal Error).' });
+        return;
+    }
     try {
         // 2. Verifikasi apakah token ini asli buatan server kita (menggunakan Secret Key)
         const verified = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);

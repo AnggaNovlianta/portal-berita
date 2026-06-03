@@ -8,6 +8,7 @@ const prisma_1 = __importDefault(require("../utils/prisma"));
 const sharp_1 = __importDefault(require("sharp"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const validation_1 = require("../utils/validation");
 // ==========================================
 // FUNGSI BANTUAN: Mesin Kompresi Gambar ke WebP
 // ==========================================
@@ -119,21 +120,42 @@ const createPost = async (req, res) => {
         const userId = req.user?.userId;
         const roleName = req.user?.roleName;
         const { title, slug, content, categoryId, published } = req.body;
+        if (!(0, validation_1.isNonEmptyString)(title) || !(0, validation_1.isNonEmptyString)(content)) {
+            res.status(400).json({ message: 'Judul dan konten berita wajib diisi.' });
+            return;
+        }
+        const parsedCategoryId = (0, validation_1.parseIntSafe)(categoryId) ?? 1;
+        if (parsedCategoryId <= 0) {
+            res.status(400).json({ message: 'Kategori tidak valid.' });
+            return;
+        }
         let thumbnail = null;
-        if (req.file)
+        if (req.file) {
+            if (!req.file.mimetype.startsWith('image/')) {
+                res.status(400).json({ message: 'File thumbnail harus berupa gambar.' });
+                return;
+            }
+            if (req.file.size > 2 * 1024 * 1024) { // Maksimal 2MB
+                res.status(400).json({ message: 'Ukuran file thumbnail maksimal 2MB.' });
+                return;
+            }
             thumbnail = await processAndSaveImage(req.file.buffer);
+        }
         let isPublished = published === 'true';
         // RBAC: Jurnalis hanya bisa Draf, Redaktur/Admin bebas
         if (roleName === 'Jurnalis')
             isPublished = false;
+        const postSlug = (0, validation_1.isNonEmptyString)(slug)
+            ? slug
+            : title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
         const newPost = await prisma_1.default.post.create({
             data: {
                 title,
-                slug,
+                slug: postSlug,
                 content,
                 thumbnail,
                 published: isPublished,
-                categoryId: categoryId ? parseInt(categoryId) : 1,
+                categoryId: parsedCategoryId,
                 authorId: userId // Mengambil ID otomatis dari Token Login (Sangat Aman)
             }
         });
@@ -151,6 +173,10 @@ const updatePost = async (req, res) => {
         const userId = req.user?.userId;
         const roleName = req.user?.roleName;
         const { title, slug, content, categoryId, published } = req.body;
+        if (!(0, validation_1.isNonEmptyString)(title) || !(0, validation_1.isNonEmptyString)(content)) {
+            res.status(400).json({ message: 'Judul dan konten berita wajib diisi.' });
+            return;
+        }
         const existingPost = await prisma_1.default.post.findUnique({ where: { id } });
         if (!existingPost) {
             res.status(404).json({ message: 'Berita tidak ditemukan' });
@@ -169,19 +195,34 @@ const updatePost = async (req, res) => {
             }
             isPublished = false; // Memastikan status tetap Draf
         }
+        const parsedCategoryId = (0, validation_1.parseIntSafe)(categoryId) ?? 1;
+        if (parsedCategoryId <= 0) {
+            res.status(400).json({ message: 'Kategori tidak valid.' });
+            return;
+        }
         const updateData = {
             title,
-            slug,
+            slug: (0, validation_1.isNonEmptyString)(slug)
+                ? slug
+                : title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim(),
             content,
             published: isPublished,
-            categoryId: categoryId ? parseInt(categoryId) : 1
+            categoryId: parsedCategoryId
         };
         if (req.file) {
+            if (!req.file.mimetype.startsWith('image/')) {
+                res.status(400).json({ message: 'File thumbnail harus berupa gambar.' });
+                return;
+            }
+            if (req.file.size > 2 * 1024 * 1024) { // Maksimal 2MB
+                res.status(400).json({ message: 'Ukuran file thumbnail maksimal 2MB.' });
+                return;
+            }
             updateData.thumbnail = await processAndSaveImage(req.file.buffer);
             if (existingPost?.thumbnail) {
                 const oldImagePath = path_1.default.join(__dirname, '../..', existingPost.thumbnail);
                 if (fs_1.default.existsSync(oldImagePath))
-                    fs_1.default.unlinkSync(oldImagePath);
+                    await fs_1.default.promises.unlink(oldImagePath).catch(() => { }); // Hapus file secara asynchronous
             }
         }
         const updatedPost = await prisma_1.default.post.update({ where: { id }, data: updateData });
@@ -217,7 +258,7 @@ const deletePost = async (req, res) => {
         if (existingPost?.thumbnail) {
             const imagePath = path_1.default.join(__dirname, '../..', existingPost.thumbnail);
             if (fs_1.default.existsSync(imagePath))
-                fs_1.default.unlinkSync(imagePath);
+                await fs_1.default.promises.unlink(imagePath).catch(() => { }); // Hapus file secara asynchronous
         }
         await prisma_1.default.post.delete({ where: { id } });
         res.json({ message: 'Berita dihapus' });

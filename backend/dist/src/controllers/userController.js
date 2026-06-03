@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateUserRole = exports.resetPassword = exports.changeCurrentUserPassword = exports.approveUser = exports.deleteUser = exports.createUser = exports.updateCurrentUserProfile = exports.getCurrentUserProfile = exports.getUsers = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const prisma_1 = __importDefault(require("../utils/prisma"));
+const validation_1 = require("../utils/validation");
 const getUsers = async (req, res) => {
     try {
         const users = await prisma_1.default.user.findMany({
@@ -49,8 +50,8 @@ const updateCurrentUserProfile = async (req, res) => {
             res.status(401).json({ message: 'User tidak terautentikasi.' });
             return;
         }
-        if (!name || !email) {
-            res.status(400).json({ message: 'Nama dan email wajib diisi.' });
+        if (!(0, validation_1.isNonEmptyString)(name) || !(0, validation_1.isValidEmail)(email)) {
+            res.status(400).json({ message: 'Nama wajib diisi dan email harus valid.' });
             return;
         }
         const existingUserWithEmail = await prisma_1.default.user.findUnique({ where: { email } });
@@ -73,8 +74,8 @@ exports.updateCurrentUserProfile = updateCurrentUserProfile;
 const createUser = async (req, res) => {
     try {
         const { name, email, password, roleName = 'Jurnalis' } = req.body;
-        if (!name || !email || !password) {
-            res.status(400).json({ message: 'Nama, email, dan password wajib diisi!' });
+        if (!(0, validation_1.isNonEmptyString)(name) || !(0, validation_1.isValidEmail)(email) || !(0, validation_1.isMinLength)(password, 6)) {
+            res.status(400).json({ message: 'Nama wajib diisi, email harus valid, dan password minimal 6 karakter.' });
             return;
         }
         const existingUser = await prisma_1.default.user.findUnique({ where: { email } });
@@ -144,8 +145,8 @@ const changeCurrentUserPassword = async (req, res) => {
             res.status(401).json({ message: 'User tidak terautentikasi.' });
             return;
         }
-        if (!currentPassword || !newPassword || newPassword.length < 6) {
-            res.status(400).json({ message: 'Kata sandi saat ini dan kata sandi baru (minimal 6 karakter) wajib diisi.' });
+        if (!(0, validation_1.isNonEmptyString)(currentPassword) || !(0, validation_1.isMinLength)(newPassword, 6)) {
+            res.status(400).json({ message: 'Kata sandi saat ini wajib diisi dan kata sandi baru minimal 6 karakter.' });
             return;
         }
         const user = await prisma_1.default.user.findUnique({ where: { id: userId } });
@@ -171,7 +172,7 @@ const resetPassword = async (req, res) => {
     try {
         const { id } = req.params;
         const { newPassword } = req.body;
-        if (!newPassword || newPassword.length < 6) {
+        if (!(0, validation_1.isMinLength)(newPassword, 6)) {
             res.status(400).json({ message: 'Kata sandi baru minimal 6 karakter!' });
             return;
         }
@@ -193,7 +194,7 @@ const updateUserRole = async (req, res) => {
     try {
         const { id } = req.params;
         const { roleName } = req.body;
-        if (!roleName) {
+        if (!(0, validation_1.isNonEmptyString)(roleName)) {
             res.status(400).json({ message: 'Role baru wajib diisi.' });
             return;
         }
