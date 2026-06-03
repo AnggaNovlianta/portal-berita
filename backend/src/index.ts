@@ -14,7 +14,7 @@ import settingRoutes from './routes/settingRoutes';
 import userRoutes from './routes/userRoutes';
 
 const app = express();
-const PORT = 5050;
+const PORT = process.env.PORT || 5050;
 
 // ==========================================
 // PENCATATAN LOG ERROR (ERROR LOGGING)
