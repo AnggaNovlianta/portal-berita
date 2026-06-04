@@ -1,5 +1,6 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import BackToTop from './BackToTop';
 
 // Menerapkan Lazy Loading pada setiap halaman agar di-load secara terpisah
@@ -48,6 +49,13 @@ const App: React.FC = () => {
 
   return (
     <Router>
+      <Helmet>
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5208982615114695" 
+          crossOrigin="anonymous"
+        ></script>
+      </Helmet>
       <Suspense fallback={<div className="flex h-screen items-center justify-center font-bold text-slate-500 animate-pulse">Memuat halaman...</div>}>
         <Routes>
           {/* RUTE PUBLIK */}
