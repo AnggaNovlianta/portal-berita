@@ -231,18 +231,33 @@ const Home: React.FC = () => {
             ))}
           </nav>
         </div>
+
+        {/* FITUR BARU: TRENDING TOPICS */}
+        <div className="bg-slate-50 border-b border-gray-100 hidden md:block">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><TrendingUp size={14}/> Topik Hangat:</span>
+            <div className="flex items-center gap-2">
+              {['Prabumulih', 'Politik', 'Teknologi', 'Ekonomi'].map(tag => (
+                <button key={tag} onClick={() => {setSearchInput(tag); navigate(`/?q=${tag}`);}} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-4 py-1.5 rounded-full hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all shadow-sm hover:shadow">
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* RUNNING TEXT (NEWS TICKER) */}
       {posts.length > 0 && !isLoading && (
-        <div className="bg-slate-900 text-white flex items-center overflow-hidden border-b-2 border-blue-600 shadow-sm relative z-40">
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center overflow-hidden border-b-2 border-blue-600 shadow-md relative z-40">
           <div className="bg-blue-600 text-white font-black px-4 sm:px-6 py-2.5 z-10 flex-shrink-0 flex items-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs shadow-[4px_0_15px_rgba(0,0,0,0.5)]">
             <span className="w-2 h-2 rounded-full bg-red-400 animate-ping absolute opacity-75"></span>
             <span className="w-2 h-2 rounded-full bg-red-500 relative"></span>
             Sekilas Info
           </div>
           <div className="flex-1 overflow-hidden relative flex items-center">
-            <div className="animate-ticker whitespace-nowrap flex items-center w-max py-2.5">
+            {/* Hover pause untuk kenyamanan membaca ticker */}
+            <div className="animate-ticker whitespace-nowrap flex items-center w-max py-2.5 hover:[animation-play-state:paused]">
               {posts.slice(0, 10).map((post: Post) => (
                 <span key={post.id} className="inline-flex items-center">
                   <span className="font-black text-blue-500 mx-4 sm:mx-6">/ /</span>
@@ -349,7 +364,9 @@ const Home: React.FC = () => {
                         {headline.category?.name || 'Berita Utama'}
                       </span>
                       <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.15] mb-4 group-hover:text-blue-600 transition-colors">
-                        {headline.title}
+                        <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent group-hover:text-blue-600">
+                          {headline.title}
+                        </span>
                       </h1>
                       <p className="text-sm md:text-base text-slate-600 mb-4 line-clamp-3 leading-relaxed">
                         {stripHtml(headline.content)}

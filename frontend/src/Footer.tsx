@@ -33,7 +33,7 @@ const Footer: React.FC = () => {
   const socialYoutube = settings?.social_youtube || '';
 
   return (
-    <footer className="bg-slate-900 text-slate-400 py-12 mt-12 border-t-4 border-blue-600">
+    <footer className="bg-gradient-to-b from-slate-900 to-slate-950 text-slate-400 py-16 mt-12 border-t-4 border-blue-600 shadow-inner">
       <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         <div className="sm:col-span-2 md:col-span-2">
           <h2 className="text-2xl font-black text-white mb-4 tracking-tighter">

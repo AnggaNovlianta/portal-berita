@@ -143,6 +143,26 @@ const PostDetail: React.FC = () => {
       {/* Reading Progress Bar (Bilah Indikator Membaca) */}
       <div className="fixed top-0 left-0 h-1.5 bg-blue-600 z-[60] transition-all duration-150 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]" style={{ width: `${scrollProgress}%` }}></div>
 
+      {/* FLOATING SHARE BAR (Hanya tampil di Desktop) */}
+      <div className="fixed left-8 top-1/3 hidden xl:flex flex-col gap-3 z-40">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Bagikan</span>
+        <button onClick={shareToFacebook} className="p-3 bg-white text-[#1877F2] rounded-full shadow-lg border border-slate-100 hover:scale-110 hover:bg-[#1877F2] hover:text-white transition-all" title="Bagikan ke Facebook">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+          </svg>
+        </button>
+        <button onClick={shareToTwitter} className="p-3 bg-white text-slate-900 rounded-full shadow-lg border border-slate-100 hover:scale-110 hover:bg-slate-900 hover:text-white transition-all" title="Bagikan ke X">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+          </svg>
+        </button>
+        <button onClick={shareToWhatsApp} className="p-3 bg-white text-[#25D366] rounded-full shadow-lg border border-slate-100 hover:scale-110 hover:bg-[#25D366] hover:text-white transition-all" title="Kirim via WhatsApp">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+        </button>
+      </div>
+
       <Helmet>
         <title>{post.title} | Pustaka Publik</title>
         <meta name="description" content={post.content.replace(/<[^>]+>/g, '').substring(0, 160)} />
@@ -227,7 +247,7 @@ const PostDetail: React.FC = () => {
             <React.Fragment key={index}>
               <div 
                 className={`prose prose-slate prose-lg md:prose-xl prose-p:leading-relaxed max-w-none w-full 
-                           prose-headings:font-black prose-a:text-blue-600 prose-a:decoration-blue-300 prose-a:underline-offset-4 hover:prose-a:decoration-blue-600
+                           prose-headings:font-black prose-a:text-blue-600 prose-a:decoration-blue-300 prose-a:underline-offset-4 hover:prose-a:decoration-blue-600 prose-blockquote:border-l-4 prose-blockquote:border-blue-600 prose-blockquote:bg-blue-50/50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-2xl prose-blockquote:font-medium prose-blockquote:text-slate-700
                            prose-img:rounded-3xl prose-img:shadow-xl prose-img:max-w-full
                            prose-table:block prose-table:overflow-x-auto
                            break-words overflow-hidden dark:prose-invert ${index > 0 ? 'mt-8' : ''}`}
