@@ -40,7 +40,7 @@ if (missingEnvs.length > 0) {
     console.error(`[FATAL] Environment variable(s) missing: ${missingEnvs.join(', ')}. Backend tidak dapat dijalankan tanpa env ini.`);
     process.exit(1);
 }
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173,http://localhost:4173')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
