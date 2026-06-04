@@ -3,7 +3,7 @@ server {
     server_name 187.127.119.213 www.pustakapublik.info;
 
     # Setting untuk Frontend (React/Vite)
-    root /var/www/portal-berita/frontend;
+    root /var/www/portal-berita/frontend/dist;
     index index.html index.htm;
 
     location / {
