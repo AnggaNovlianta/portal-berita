@@ -71,9 +71,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         <form onSubmit={handleLogin} className="flex flex-col gap-5">
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Alamat Email</label>
+            <label htmlFor="email" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Alamat Email</label>
             <input 
               type="email" 
+              id="email"
+              name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium"
@@ -84,11 +86,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold">Kata Sandi</label>
+              <label htmlFor="password" className="block text-xs uppercase tracking-wider text-gray-500 font-bold">Kata Sandi</label>
               <Link to="/forgot-password" className="text-xs text-blue-600 font-bold hover:underline">Lupa Kata Sandi?</Link>
             </div>
             <input 
               type="password" 
+              id="password"
+              name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium"

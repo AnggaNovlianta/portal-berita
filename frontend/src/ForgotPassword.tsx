@@ -35,8 +35,8 @@ const ForgotPassword: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Alamat Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="email@anda.com" required />
+            <label htmlFor="email" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Alamat Email</label>
+            <input type="email" id="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="email@anda.com" required />
           </div>
           <button type="submit" disabled={isLoading} className="mt-4 w-full px-6 py-4 bg-navy-primary text-white font-bold rounded-xl shadow-lg hover:bg-opacity-90 transition-all disabled:opacity-70">
             {isLoading ? 'Mengirim...' : 'Kirim Tautan Pemulihan'}

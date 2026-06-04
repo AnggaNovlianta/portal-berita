@@ -43,12 +43,12 @@ const ResetPassword: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Kata Sandi Baru</label>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border rounded-xl" placeholder="••••••••" required minLength={6} />
+            <label htmlFor="newPassword" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Kata Sandi Baru</label>
+            <input type="password" id="newPassword" name="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border rounded-xl" placeholder="••••••••" required minLength={6} />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Ulangi Kata Sandi Baru</label>
-            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border rounded-xl" placeholder="••••••••" required minLength={6} />
+            <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Ulangi Kata Sandi Baru</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border rounded-xl" placeholder="••••••••" required minLength={6} />
           </div>
           <button type="submit" disabled={isLoading} className="mt-4 w-full px-6 py-4 bg-navy-primary text-white font-bold rounded-xl shadow-lg hover:bg-opacity-90 transition-all disabled:opacity-70">
             {isLoading ? 'Memproses...' : 'Simpan Kata Sandi Baru'}

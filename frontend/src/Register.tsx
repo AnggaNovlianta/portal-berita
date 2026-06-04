@@ -65,20 +65,20 @@ const Register: React.FC = () => {
 
         <form onSubmit={handleRegister} className="flex flex-col gap-5">
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Nama Lengkap</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="Nama Anda" required />
+            <label htmlFor="name" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Nama Lengkap</label>
+            <input type="text" id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="Nama Anda" required />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Alamat Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="redaksi@email.com" required />
+            <label htmlFor="email" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Alamat Email</label>
+            <input type="email" id="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="redaksi@email.com" required />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Kata Sandi</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="••••••••" required minLength={6} />
+            <label htmlFor="password" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Kata Sandi</label>
+            <input type="password" id="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium" placeholder="••••••••" required minLength={6} />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Pilih Peran</label>
-            <select value={roleName} onChange={(e) => setRoleName(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium cursor-pointer">
+            <label htmlFor="roleName" className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Pilih Peran</label>
+            <select id="roleName" name="roleName" value={roleName} onChange={(e) => setRoleName(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-primary focus:border-transparent transition-all font-medium cursor-pointer">
               <option value="Jurnalis">Jurnalis</option>
               <option value="Redaktur">Redaktur</option>
             </select>
