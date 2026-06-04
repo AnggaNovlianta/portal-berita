@@ -60,6 +60,7 @@ app.use(express.json());
 
 // Buka akses folder uploads ke dunia luar (Menggunakan __dirname jauh lebih stabil)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // DAFTAR RUTE
 app.use('/api/auth', authRoutes);
