@@ -53,7 +53,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
       <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-xl border-t-4 border-navy-primary w-full max-w-md">
         
@@ -106,21 +105,24 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             {isLoading ? 'Memverifikasi...' : 'Masuk ke Sistem'}
           </button>
 
-          <div className="flex items-center my-6">
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="px-3 text-xs text-gray-400 font-bold uppercase tracking-wider">Atau masuk dengan</span>
-            <div className="flex-grow border-t border-gray-200"></div>
-          </div>
-          <div className="flex justify-center">
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Google Login dibatalkan/gagal.')} />
-          </div>
+          {GOOGLE_CLIENT_ID && (
+            <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+              <div className="flex items-center my-6">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="px-3 text-xs text-gray-400 font-bold uppercase tracking-wider">Atau masuk dengan</span>
+                <div className="flex-grow border-t border-gray-200"></div>
+              </div>
+              <div className="flex justify-center">
+                <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Google Login dibatalkan/gagal.')} />
+              </div>
+            </GoogleOAuthProvider>
+          )}
         </form>
         <div className="mt-6 text-center text-sm text-gray-500 font-medium">
           Belum punya akun? <Link to="/register" className="text-blue-600 hover:underline font-bold">Daftar sekarang</Link>
         </div>
       </div>
       </div>
-    </GoogleOAuthProvider>
   );
 };
 

@@ -9,7 +9,6 @@ import { isNonEmptyString, parseIntSafe } from '../utils/validation';
 // FUNGSI BANTUAN: Mesin Kompresi Gambar ke WebP
 // ==========================================
 const processAndSaveImage = async (fileBuffer: Buffer): Promise<string> => {
-  const uploadDir = path.join(__dirname, '../../uploads');
   const uploadDir = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -220,7 +219,6 @@ export const updatePost = async (req: Request, res: Response): Promise<void> => 
       }
       updateData.thumbnail = await processAndSaveImage(req.file.buffer);
       if (existingPost?.thumbnail) {
-        const oldImagePath = path.join(__dirname, '../..', existingPost.thumbnail);
         const oldImagePath = path.join(process.cwd(), existingPost.thumbnail);
         if (fs.existsSync(oldImagePath)) await fs.promises.unlink(oldImagePath).catch(() => {}); // Hapus file secara asynchronous
       }
@@ -250,7 +248,6 @@ export const deletePost = async (req: Request, res: Response): Promise<void> => 
     }
     
     if (existingPost?.thumbnail) {
-      const imagePath = path.join(__dirname, '../..', existingPost.thumbnail);
       const imagePath = path.join(process.cwd(), existingPost.thumbnail);
       if (fs.existsSync(imagePath)) await fs.promises.unlink(imagePath).catch(() => {}); // Hapus file secara asynchronous
     }
