@@ -1,9 +1,15 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 export const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:5050';
+const envApiUrl = import.meta.env.VITE_API_URL;
+const localApiUrl = 'http://localhost:5050/api';
+const defaultApiUrl = `${BASE_URL}/api`;
+
+const isLocalHost = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+const apiBaseURL = isLocalHost ? localApiUrl : (envApiUrl ?? defaultApiUrl);
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || `${BASE_URL}/api`,
+  baseURL: apiBaseURL,
 });
 
 // Interceptor: Menyisipkan Token JWT otomatis ke setiap request

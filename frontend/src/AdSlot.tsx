@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Megaphone } from 'lucide-react';
 import api, { BASE_URL } from './api';
@@ -27,21 +27,39 @@ const AdSlot: React.FC<AdSlotProps> = ({ width = '100%', height = '90px', text =
 
   const imageUrl = adKey && settings?.[adKey] ? `${BASE_URL}${settings[adKey]}` : null;
   const linkUrl = adKey && settings?.[`${adKey}_link`] ? settings[`${adKey}_link`] : '#';
-  const adSlotId = adKey && settings?.[`${adKey}_slot`] ? settings[`${adKey}_slot`] : '1234567890';
+  const adSlotId = adKey ? settings?.[`${adKey}_slot`] : undefined;
   const companyEmail = settings?.company_email || 'redaksi@pustakapublik.com';
+  const adRef = useRef<HTMLModElement | null>(null);
+  const hasPushedRef = useRef(false);
 
-  // Memicu (trigger) Google AdSense setiap kali komponen iklan muncul di layar
+  const shouldRenderAdSense = Boolean(adSlotId) && !imageUrl;
+
+  // Memicu (trigger) Google AdSense hanya sekali per slot, untuk menghindari error strict mode
   useEffect(() => {
-    // Hanya jalankan AdSense jika Anda tidak sedang mengunggah Banner Kustom
-    if (!imageUrl) {
-      try {
-        const win = window as Window & { adsbygoogle?: unknown[] };
-        (win.adsbygoogle = win.adsbygoogle || []).push({});
-      } catch (e) {
-        console.error("AdSense Error:", e);
-      }
+    if (!shouldRenderAdSense || hasPushedRef.current) {
+      return;
     }
-  }, [imageUrl]);
+
+    const adNode = adRef.current;
+    if (!adNode) {
+      return;
+    }
+
+    const win = window as Window & { adsbygoogle?: unknown[] };
+    win.adsbygoogle = win.adsbygoogle || [];
+
+    if ((adNode as any).dataset.adsbygoogleLoaded === 'true') {
+      return;
+    }
+
+    try {
+      (win.adsbygoogle as unknown[]).push({});
+      (adNode as any).dataset.adsbygoogleLoaded = 'true';
+      hasPushedRef.current = true;
+    } catch (e) {
+      console.error('AdSense Error:', e);
+    }
+  }, [shouldRenderAdSense]);
 
   if (imageUrl) {
     return (
@@ -70,16 +88,19 @@ const AdSlot: React.FC<AdSlotProps> = ({ width = '100%', height = '90px', text =
       </div>
 
       {/* KODE ADSENSE (Akan menimpa Dummy Ad di atas jika Google sudah menyetujui iklan) */}
-      <div className="relative z-10 w-full h-full">
-        <ins 
-          className="adsbygoogle"
-          style={{ display: 'block', width: '100%', height: '100%' }}
-          data-ad-client="ca-pub-5208982615114695" 
-          data-ad-slot={adSlotId}
-          data-ad-format="auto"
-          data-full-width-responsive="true"
-        ></ins>
-      </div>
+      {shouldRenderAdSense && (
+        <div className="relative z-10 w-full h-full">
+          <ins 
+            ref={adRef}
+            className="adsbygoogle"
+            style={{ display: 'block', width: '100%', height: '100%' }}
+            data-ad-client="ca-pub-5208982615114695" 
+            data-ad-slot={adSlotId}
+            data-ad-format="auto"
+            data-full-width-responsive="true"
+          ></ins>
+        </div>
+      )}
     </div>
   );
 };
