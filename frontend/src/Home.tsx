@@ -351,6 +351,9 @@ const Home: React.FC = () => {
                       <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.15] mb-4 group-hover:text-blue-600 transition-colors">
                         {headline.title}
                       </h1>
+                      <p className="text-sm md:text-base text-slate-600 mb-4 line-clamp-3 leading-relaxed">
+                        {stripHtml(headline.content)}
+                      </p>
                       <div className="flex items-center gap-3 text-slate-500 text-xs sm:text-sm font-medium">
                         <span className="flex items-center gap-1.5"><User size={14} /> {headline.author?.name || 'Redaksi'}</span>
                         <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
@@ -377,9 +380,12 @@ const Home: React.FC = () => {
                           <span className="inline-block bg-blue-50 text-blue-600 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest mb-2">
                             {post.category?.name || 'Kabar'}
                           </span>
-                          <h2 className="text-lg md:text-xl font-black text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-3">
+                          <h2 className="text-lg md:text-xl font-black text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
                             {post.title}
                           </h2>
+                          <p className="text-sm text-slate-500 line-clamp-2 mb-3 leading-relaxed">
+                            {stripHtml(post.content)}
+                          </p>
                         </div>
                       </Link>
                     ))}
